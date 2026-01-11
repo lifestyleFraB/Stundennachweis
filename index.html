@@ -2,301 +2,82 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkTrack Pro - Frank Berndt</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meine App</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4A90E2">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <style>
-        :root {
-            --bg: #0f111a; --card-bg: #1a1c2e; --accent: #7289da;
-            --text: #ffffff; --success: #43b581; --danger: #f04747; --text-dim: #949cf7; --edit: #f39c12;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f2f5;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        
-        .app-header { width: 100%; max-width: 850px; padding: 10px; margin-bottom: 10px; border-left: 3px solid var(--accent); font-size: 0.9rem; color: var(--text-dim); }
-        .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; width: 100%; max-width: 850px; }
-        .nav-btn { flex: 1; min-width: 80px; padding: 12px; cursor: pointer; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--text); font-weight: bold; font-size: 0.75rem; }
-        .nav-btn.active { background: var(--accent); }
-
-        .container { width: 100%; max-width: 850px; display: none; background: var(--card-bg); padding: 25px; border-radius: 15px; box-sizing: border-box; }
-        .container.active { display: block; }
-
-        .timer-card { background: linear-gradient(135deg, #2c2f48 0%, #1a1c2e 100%); padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; border: 1px solid var(--accent); }
-        .timer-display { font-size: 2.5rem; font-weight: bold; font-family: monospace; margin: 10px 0; color: var(--success); }
-        .timer-controls { display: flex; gap: 10px; justify-content: center; }
-        .t-btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: white; }
-        
-        .summary-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
-        .summary-table th, .summary-table td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-        .total-row { background: rgba(67, 181, 129, 0.2) !important; font-weight: bold; }
-
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2c2f48; color: white; margin-bottom: 15px; box-sizing: border-box; }
-        .btn-primary { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
-        
-        .week-block { background: rgba(255,255,255,0.03); margin-bottom: 30px; border-radius: 12px; border: 1px solid #333; overflow: hidden; }
-        .week-title { background: #1f2235; padding: 12px 15px; font-weight: bold; color: var(--accent); }
-        .report-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .report-table th, .report-table td { padding: 10px; text-align: left; border-bottom: 1px solid #222; }
-        .math-detail { padding: 15px; background: rgba(67, 181, 129, 0.1); border-top: 1px solid #333; font-size: 0.9rem; }
-
-        #pdf-export-container { position: absolute; left: -9999px; }
-        .pdf-area { width: 210mm; padding: 20mm; background: white; color: black; font-family: Arial, sans-serif; }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px; /* Wichtig: Verhindert Auto-Zoom auf iPhones */
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:active {
+            background-color: #357ABD;
+        }
     </style>
-	<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
-<link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 
-    <div class="app-header">
-        <strong>Frank Berndt</strong> | Sellen 22 | 48565 Steinfurt
-    </div>
-
-    <div class="nav">
-        <button id="nav-dash" class="nav-btn active" onclick="showTab('tab-dash')">Dashboard</button>
-        <button id="nav-entry" class="nav-btn" onclick="showTab('tab-entry')">Erfassung</button>
-        <button id="nav-report" class="nav-btn" onclick="showTab('tab-report')">Bericht & Export</button>
-    </div>
-
-    <div id="tab-dash" class="container active">
-        <div class="timer-card">
-            <h4 id="timer-status">Bereit für die nächste Tour</h4>
-            <div class="timer-display" id="stopwatch">00:00:00</div>
-            <div class="timer-controls">
-                <button id="btn-start" class="t-btn" style="background:var(--success)" onclick="startTimer()">Start</button>
-                <button id="btn-stop" class="t-btn" style="background:var(--danger); display:none;" onclick="stopTimer()">Beenden</button>
-            </div>
-            <select id="timer-tour-sel" style="margin-top:15px; margin-bottom:0;"></select>
-        </div>
-
-        <h3>Tour-Übersicht</h3>
-        <div id="dash-summary-content"></div>
-        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-top: 20px;">
-            <h4>Touren verwalten</h4>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="new-tour-name" placeholder="Name der Tour..." style="margin-bottom:0;">
-                <button onclick="addTour()" style="background:var(--success); border:none; padding:10px 20px; border-radius:8px; color:white; font-weight:bold;">+</button>
-            </div>
-            <div id="tour-list" style="margin-top:10px; font-size:0.9rem;"></div>
-        </div>
-    </div>
-
-    <div id="tab-entry" class="container">
-        <h3 id="form-title">Tourzeit erfassen</h3>
-        <label>Tour auswählen</label><select id="sel-tour"></select>
-        <label>Datum</label><input type="date" id="in-date">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div><label>Vormittag</label><div style="display:flex;gap:5px;"><input type="time" id="am-s" value="00:00"><input type="time" id="am-e" value="00:00"></div></div>
-            <div><label>Nachmittag</label><div style="display:flex;gap:5px;"><input type="time" id="pm-s" value="00:00"><input type="time" id="pm-e" value="00:00"></div></div>
-        </div>
-        <button class="btn-primary" onclick="saveEntry()">Speichern</button>
-        <button id="btn-cancel" onclick="resetForm()" style="display:none; width:100%; margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:10px;">Abbrechen / Zurücksetzen</button>
-    </div>
-
-    <div id="tab-report" class="container">
-        <div id="report-list"></div>
-        <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
-            <h4 id="report-dynamic-title">Gesamt-Abrechnung</h4>
-            <div id="report-final-table"></div>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-            <button onclick="generatePDF()" style="background:var(--danger); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">PDF Beleg</button>
-            <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">Excel Export</button>
-        </div>
-    </div>
-
-    <div id="pdf-export-container"><div id="pdf-area" class="pdf-area"></div></div>
-
-<script>
-    let db = JSON.parse(localStorage.getItem('frank_v24')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null };
-    let timerInterval;
-    let editId = null;
-
-    function startTimer() {
-        db.activeTimer = { start: Date.now(), tour: document.getElementById('timer-tour-sel').value };
-        saveDB();
-        updateTimerUI();
-    }
-
-    function stopTimer() {
-        const startTime = db.activeTimer.start;
-        const endTime = Date.now();
-        const tour = db.activeTimer.tour;
+    <div class="container">
+        <h2>App Eingabe</h2>
+        <p>Tippe etwas ein:</p>
+        <input type="text" id="meinInput" placeholder="Hier schreiben...">
+        <button onclick="speichern()">Speichern</button>
         
-        showTab('tab-entry');
-        document.getElementById('sel-tour').value = tour;
-        document.getElementById('am-s').value = new Date(startTime).toTimeString().slice(0,5);
-        document.getElementById('am-e').value = new Date(endTime).toTimeString().slice(0,5);
-        document.getElementById('pm-s').value = "00:00";
-        document.getElementById('pm-e').value = "00:00";
-        document.getElementById('in-date').valueAsDate = new Date();
-        
-        db.activeTimer = null;
-        saveDB();
-        updateTimerUI();
-    }
+        <p id="ausgabe"></p>
+    </div>
 
-    function updateTimerUI() {
-        const btnStart = document.getElementById('btn-start');
-        const btnStop = document.getElementById('btn-stop');
-        const display = document.getElementById('stopwatch');
-        const status = document.getElementById('timer-status');
-
-        if(db.activeTimer) {
-            btnStart.style.display = "none";
-            btnStop.style.display = "inline-block";
-            status.innerText = "Tour läuft: " + db.activeTimer.tour;
-            if(!timerInterval) {
-                timerInterval = setInterval(() => {
-                    const diff = Date.now() - db.activeTimer.start;
-                    const h = Math.floor(diff/3600000).toString().padStart(2,'0');
-                    const m = Math.floor((diff%3600000)/60000).toString().padStart(2,'0');
-                    const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
-                    display.innerText = `${h}:${m}:${s}`;
-                }, 1000);
+    <script>
+        // Einfache Funktion zum Testen
+        function speichern() {
+            const wert = document.getElementById('meinInput').value;
+            if(wert) {
+                document.getElementById('ausgabe').innerText = "Gespeichert: " + wert;
+                document.getElementById('meinInput').value = ""; // Feld leeren
+            } else {
+                alert("Bitte gib etwas ein!");
             }
-        } else {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            btnStart.style.display = "inline-block";
-            btnStop.style.display = "none";
-            display.innerText = "00:00:00";
-            status.innerText = "Bereit für die nächste Tour";
         }
-    }
 
-    function resetForm() {
-        editId = null;
-        document.getElementById('am-s').value = "00:00";
-        document.getElementById('am-e').value = "00:00";
-        document.getElementById('pm-s').value = "00:00";
-        document.getElementById('pm-e').value = "00:00";
-        document.getElementById('in-date').valueAsDate = new Date();
-        document.getElementById('btn-cancel').style.display = "none";
-        document.getElementById('form-title').innerText = "Tourzeit erfassen";
-    }
-
-    function init() {
-        updateTourDropdowns();
-        renderDashboard();
-        updateTimerUI();
-        document.getElementById('in-date').valueAsDate = new Date();
-    }
-
-    function updateTourDropdowns() {
-        const options = db.tours.map(t=>`<option value="${t}">${t}</option>`).join('');
-        document.getElementById('sel-tour').innerHTML = options;
-        document.getElementById('timer-tour-sel').innerHTML = options;
-    }
-
-    function getSummaryHTML() {
-        const stats = {}; let totalH = 0;
-        db.entries.forEach(e => {
-            if(!stats[e.tour]) stats[e.tour] = { h: 0, m: 0 };
-            stats[e.tour].h += e.total; stats[e.tour].m += (e.total * 14);
-            totalH += e.total;
-        });
-        let html = `<table class="summary-table"><thead><tr><th>Tour</th><th>Stunden</th><th>Verdienst</th></tr></thead><tbody>`;
-        for(let t in stats) { html += `<tr><td>${t}</td><td>${stats[t].h.toFixed(2)} h</td><td>${stats[t].m.toFixed(2)} €</td></tr>`; }
-        html += `<tr class="total-row"><td><strong>GESAMT</strong></td><td><strong>${totalH.toFixed(2)} h</strong></td><td><strong>${(totalH * 14).toFixed(2)} €</strong></td></tr></tbody></table>`;
-        return html;
-    }
-
-    function showTab(id) {
-        document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.getElementById('nav-' + id.split('-')[1]).classList.add('active');
-        if(id === 'tab-report') renderReport();
-        if(id === 'tab-dash') renderDashboard();
-    }
-
-    function renderDashboard() {
-        document.getElementById('dash-summary-content').innerHTML = getSummaryHTML();
-        document.getElementById('tour-list').innerHTML = db.tours.map(t => `<div>• ${t} ${t!=='Standard-Tour'?`<span onclick="deleteTour('${t}')" style="color:var(--danger);cursor:pointer;margin-left:10px;">[x]</span>`:''}</div>`).join('');
-    }
-
-    function renderReport() {
-        const mj = getMonatJahr();
-        document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann`;
-        const weeks = {};
-        db.entries.forEach(e => {
-            const key = `${e.year}-KW${e.kw}-${e.tour}`;
-            if(!weeks[key]) weeks[key] = { items: [], h: 0, days: new Set() };
-            weeks[key].items.push(e); weeks[key].h += e.total; weeks[key].days.add(e.date);
-        });
-        let html = '';
-        for(let k in weeks) {
-            const w = weeks[k], count = w.days.size, avg = w.h / count;
-            html += `<div class="week-block"><div class="week-title">${k.split('-')[1]} | Tour: ${k.split('-')[2]}</div>
-                <table class="report-table"><thead><tr><th>Datum</th><th>Vorm.</th><th>Nachm.</th><th>Std.</th><th></th></tr></thead>
-                <tbody>${w.items.map(i => `<tr><td>${i.date}</td><td>${i.am_s}-${i.am_e}</td><td>${i.pm_s}-${i.pm_e}</td><td><b>${i.total.toFixed(2)}</b></td>
-                <td style="text-align:right"><span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:10px;cursor:pointer;">✎</span><span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span></td></tr>`).join('')}</tbody>
-                </table>
-                <div class="math-detail">Abrechnung: ${w.h.toFixed(2)}h / ${count} Tage = ${avg.toFixed(2)}h Ø Schnitt | <strong>${(avg * count * 14).toFixed(2)} €</strong></div></div>`;
+        // Service Worker Registrierung
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker bereit!', reg))
+                    .catch(err => console.log('Fehler beim SW:', err));
+            });
         }
-        document.getElementById('report-list').innerHTML = html || "Keine Einträge.";
-        document.getElementById('report-final-table').innerHTML = getSummaryHTML();
-    }
-
-    function getMonatJahr() {
-        const monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-        const now = new Date();
-        return `${monate[now.getMonth()]} ${now.getFullYear()}`;
-    }
-
-    async function generatePDF() {
-        const mj = getMonatJahr();
-        const area = document.getElementById('pdf-area');
-        area.innerHTML = `
-            <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px;">
-                <div><strong>Frank Berndt</strong><br>Sellen 22<br>48565 Steinfurt</div>
-                <div style="text-align:right">Erstellt: ${new Date().toLocaleDateString()}</div>
-            </div>
-            <h2>Stundennachweis ${mj} für Busbetrieb Elkmann</h2>
-            <div id="pdf-content-inject"></div>
-            <div style="margin-top:30px; border-top:1px solid #000; padding-top:15px;">
-                <h3>Gesamtzusammenfassung Touren</h3>
-                ${getSummaryHTML()}
-            </div>
-            <div style="margin-top:40px; border-top:1px solid #000; width:60mm; padding-top:5px; font-size:9pt;">Unterschrift Frank Berndt</div>
-        `;
-        const content = document.getElementById('report-list').cloneNode(true);
-        content.querySelectorAll('td:last-child').forEach(e => e.remove());
-        area.querySelector('#pdf-content-inject').appendChild(content);
-
-        const canvas = await html2canvas(area, { scale: 2 });
-        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
-        pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
-    }
-
-    function saveEntry() {
-        const am_s = document.getElementById('am-s').value, am_e = document.getElementById('am-e').value, pm_s = document.getElementById('pm-s').value, pm_e = document.getElementById('pm-e').value;
-        const total = ((new Date(`1970-01-01T${am_e}`) - new Date(`1970-01-01T${am_s}`)) + (new Date(`1970-01-01T${pm_e}`) - new Date(`1970-01-01T${pm_s}`))) / 3600000;
-        const d = new Date(document.getElementById('in-date').value);
-        const data = { id: editId || Date.now(), tour: document.getElementById('sel-tour').value, date: document.getElementById('in-date').value, kw: getKW(d), year: d.getFullYear(), am_s, am_e, pm_s, pm_e, total: Math.abs(total) };
-        if(editId) db.entries[db.entries.findIndex(e=>e.id===editId)] = data; else db.entries.push(data);
-        db.entries.sort((a,b) => new Date(a.date) - new Date(b.date));
-        saveDB(); 
-        resetForm(); // Hier werden die Zeiten auf 0 gesetzt
-        showTab('tab-report');
-    }
-
-    function addTour() { const n = document.getElementById('new-tour-name').value.trim(); if(n && !db.tours.includes(n)) { db.tours.push(n); saveDB(); init(); } }
-    function deleteTour(n) { if(confirm("Löschen?")) { db.tours=db.tours.filter(t=>t!==n); saveDB(); init(); } }
-    function saveDB() { localStorage.setItem('frank_v24', JSON.stringify(db)); }
-    function getKW(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7); }
-    function editEntry(id) { const e = db.entries.find(x=>x.id===id); editId=id; document.getElementById('sel-tour').value=e.tour; document.getElementById('in-date').value=e.date; document.getElementById('am-s').value=e.am_s; document.getElementById('am-e').value=e.am_e; document.getElementById('pm-s').value=e.pm_s; document.getElementById('pm-e').value=e.pm_e; showTab('tab-entry'); document.getElementById('btn-cancel').style.display="block"; }
-    function deleteEntry(id) { if(confirm("Löschen?")) { db.entries=db.entries.filter(x=>x.id!==id); saveDB(); renderReport(); } }
-
-    init();
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>	
-	
-</script>
+    </script>
 </body>
 </html>
