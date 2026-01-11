@@ -202,14 +202,23 @@
         return html;
     }
 
-    function showTab(id) {
-        document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.getElementById('nav-' + id.split('-')[1]).classList.add('active');
-        if(id === 'tab-report') renderReport();
-        if(id === 'tab-dash') renderDashboard();
+   function showTab(tabId) {
+    console.log("Wechsle zu:", tabId);
+
+    // 1. Alle Elemente mit der Klasse 'tab-content' verstecken
+    const alleTabs = document.querySelectorAll('.tab-content');
+    alleTabs.forEach(tab => {
+        tab.style.display = 'none';
+    });
+
+    // 2. Nur den Tab anzeigen, der angeklickt wurde
+    const gewaehlterTab = document.getElementById(tabId);
+    if (gewaehlterTab) {
+        gewaehlterTab.style.display = 'block';
+    } else {
+        console.error("Fehler: Tab mit der ID '" + tabId + "' nicht gefunden!");
     }
+}
 
     function renderDashboard() {
         document.getElementById('dash-summary-content').innerHTML = getSummaryHTML();
