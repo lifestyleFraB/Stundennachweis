@@ -291,12 +291,11 @@
     function deleteEntry(id) { if(confirm("Löschen?")) { db.entries=db.entries.filter(x=>x.id!==id); saveDB(); renderReport(); } }
 
     init();
-<script>
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
   }
-</script>	
-<script>
+
     // Diese Funktion hat gefehlt!
     function showTab(tabId) {
         console.log("Tab gewechselt zu: " + tabId);
@@ -314,7 +313,7 @@
             console.log('Service Worker Fehler:', err);
         });
     }
-</script>	
+
 </script>
 </body>
 </html>
