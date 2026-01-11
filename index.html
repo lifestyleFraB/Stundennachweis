@@ -220,6 +220,42 @@
     }
 }
 
+function generierePDF() {
+    // 1. Daten aus dem Speicher holen
+    const gespeicherteTouren = JSON.parse(localStorage.getItem('stundenDaten')) || [];
+    
+    if (gespeicherteTouren.length === 0) {
+        alert("Keine Daten zum Exportieren vorhanden!");
+        return;
+    }
+
+    // 2. Ein neues PDF-Dokument erstellen (Beispiel mit jsPDF)
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Stundennachweis - Einzelaufstellung", 14, 20);
+    
+    doc.setFontSize(12);
+    let yAchse = 30; // Startposition nach unten
+
+    // 3. Jede einzelne Tour in das PDF schreiben
+    gespeicherteTouren.forEach((tour, index) => {
+        // Falls die Seite voll ist, neue Seite erstellen
+        if (yAchse > 270) {
+            doc.addPage();
+            yAchse = 20;
+        }
+
+        doc.text(`${index + 1}. Datum: ${tour.datum} | Tour: ${tour.name}`, 14, yAchse);
+        yAchse += 7;
+        doc.text(`   Start: ${tour.start} | Ende: ${tour.ende} | Dauer: ${tour.dauer}h`, 14, yAchse);
+        yAchse += 10; // Abstand zur nächsten Tour
+    });
+
+    // 4. PDF speichern
+    doc.save("Touren_Einzelaufstellung.pdf");
+
     function renderDashboard() {
         document.getElementById('dash-summary-content').innerHTML = getSummaryHTML();
         document.getElementById('tour-list').innerHTML = db.tours.map(t => `<div>• ${t} ${t!=='Standard-Tour'?`<span onclick="deleteTour('${t}')" style="color:var(--danger);cursor:pointer;margin-left:10px;">[x]</span>`:''}</div>`).join('');
