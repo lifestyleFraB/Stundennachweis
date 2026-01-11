@@ -81,14 +81,15 @@
         </div>
     </div>
 
-    <div id="tab-entry" class="tab-content">
-        <h3 id="form-title">Tourzeit erfassen</h3>
-        <label>Tour auswählen</label><select id="sel-tour"></select>
-        <label>Datum</label><input type="date" id="in-date">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div><label>Vormittag</label><div style="display:flex;gap:5px;"><input type="time" id="am-s" value="00:00"><input type="time" id="am-e" value="00:00"></div></div>
-            <div><label>Nachmittag</label><div style="display:flex;gap:5px;"><input type="time" id="pm-s" value="00:00"><input type="time" id="pm-e" value="00:00"></div></div>
-        </div>
+   <div id="tab-erfassen" class="tab-content">
+    <h2>Stunden erfassen</h2>
+    
+    <label>Datum:</label>
+    <input type="date" id="datum"> <label>Startzeit:</label>
+    <input type="time" id="startzeit"> <label>Endzeit:</label>
+    <input type="time" id="endzeit"> <label>Tour-Info:</label>
+    <input type="text" id="tour-info" placeholder="Tour-Nummer oder Ziel"> <button onclick="addTour()">Tour speichern</button>
+</div>
         <button class="btn-primary" onclick="saveEntry()">Speichern</button>
         <button id="btn-cancel" onclick="resetForm()" style="display:none; width:100%; margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:10px;">Abbrechen / Zurücksetzen</button>
     </div>
