@@ -44,8 +44,8 @@
     </style>
 	<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
-<link rel="apple-touch-icon" href="icon-192.png">
 </head>
+
 <body>
 
     <div class="app-header">
@@ -54,7 +54,7 @@
 
     <div class="nav">
         <button id="nav-dash" class="nav-btn active" onclick="showTab('tab-dash')">Dashboard</button>
-        <button id="nav-entry" class="nav-btn" onclick="showTab('tab-erfassen')">Erfassung</button>
+        <button id="nav-entry" class="nav-btn" onclick="showTab('tab-entry')">Erfassung</button>
         <button id="nav-report" class="nav-btn" onclick="showTab('tab-report')">Bericht & Export</button>
     </div>
 
@@ -81,20 +81,19 @@
         </div>
     </div>
 
-  <div id="tab-erfassen" class="tab-content">
-    <h2>Stunden erfassen</h2>
-    
-    <label for="datum">Datum:</label>
-    <input type="date" id="datum"> <label for="startzeit">Startzeit:</label>
-    <input type="time" id="startzeit"> <label for="endzeit">Endzeit:</label>
-    <input type="time" id="endzeit"> <label for="tour-info">Tour-Info:</label>
-    <input type="text" id="tour-info" placeholder="z.B. Tour 502"> <button onclick="addTour()">Tour speichern</button>
-</div>
-        <button class="btn-primary" onclick="addTour()">Tour speichern</button>
+    <div id="tab-entry" class="container">
+        <h3 id="form-title">Tourzeit erfassen</h3>
+        <label>Tour auswählen</label><select id="sel-tour"></select>
+        <label>Datum</label><input type="date" id="in-date">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div><label>Vormittag</label><div style="display:flex;gap:5px;"><input type="time" id="am-s" value="00:00"><input type="time" id="am-e" value="00:00"></div></div>
+            <div><label>Nachmittag</label><div style="display:flex;gap:5px;"><input type="time" id="pm-s" value="00:00"><input type="time" id="pm-e" value="00:00"></div></div>
+        </div>
+        <button class="btn-primary" onclick="saveEntry()">Speichern</button>
         <button id="btn-cancel" onclick="resetForm()" style="display:none; width:100%; margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:10px;">Abbrechen / Zurücksetzen</button>
     </div>
 
-    <div id="tab-report" class="tab-content">
+    <div id="tab-report" class="container">
         <div id="report-list"></div>
         <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
             <h4 id="report-dynamic-title">Gesamt-Abrechnung</h4>
@@ -109,109 +108,195 @@
     <div id="pdf-export-container"><div id="pdf-area" class="pdf-area"></div></div>
 
 <script>
-// 1. Globale Daten & Initialisierung
-let tourenListe = JSON.parse(localStorage.getItem('stundenDaten')) || [];
 
-// 2. Funktion: Liste auf dem Bildschirm zeichnen
-// (Muss weit oben stehen, damit andere Funktionen sie finden)
-function renderListe() {
-    const container = document.getElementById('listen-inhalt');
-    if (!container) return;
-    
-    if (tourenListe.length === 0) {
-        container.innerHTML = "<p style='padding:10px;'>Noch keine Touren erfasst.</p>";
-        return;
+    let db = JSON.parse(localStorage.getItem('frank_v24')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null };
+    let timerInterval;
+    let editId = null;
+
+    function startTimer() {
+        db.activeTimer = { start: Date.now(), tour: document.getElementById('timer-tour-sel').value };
+        saveDB();
+        updateTimerUI();
     }
 
-    let html = "<table style='width:100%; border-collapse: collapse;'>";
-    html += "<tr style='background:#eee;'><th>Datum</th><th>Tour</th><th>Zeit</th></tr>";
-    tourenListe.forEach(t => {
-        html += `<tr style='border-bottom:1px solid #ccc;'>
-            <td style='padding:8px;'>${t.datum}</td>
-            <td style='padding:8px;'>${t.info || '-'}</td>
-            <td style='padding:8px;'>${t.start}-${t.ende}</td>
-        </tr>`;
-    });
-    html += "</table>";
-    container.innerHTML = html;
-}
-
-// 3. Funktion: Speichern (addTour)
-function addTour() {
-    console.log("Speichern gestartet...");
-    try {
-        const d = document.getElementById('datum');
-        const s = document.getElementById('startzeit');
-        const e = document.getElementById('endzeit');
-        const i = document.getElementById('tour-info');
-
-        if (!d || !s || !e) {
-            alert("Fehler: Eingabefelder im HTML nicht gefunden!");
-            return;
-        }
-
-        if (!d.value || !s.value || !e.value) {
-            alert("Bitte Datum, Startzeit und Endzeit eingeben!");
-            return;
-        }
-
-        const neueTour = {
-            datum: d.value,
-            start: s.value,
-            ende: e.value,
-            info: i ? i.value : "",
-            id: Date.now()
-        };
-
-        tourenListe.push(neueTour);
-        localStorage.setItem('stundenDaten', JSON.stringify(tourenListe));
+    function stopTimer() {
+        const startTime = db.activeTimer.start;
+        const endTime = Date.now();
+        const tour = db.activeTimer.tour;
         
-        alert("Tour gespeichert!");
-        if(i) i.value = "";
+        showTab('tab-entry');
+        document.getElementById('sel-tour').value = tour;
+        document.getElementById('am-s').value = new Date(startTime).toTimeString().slice(0,5);
+        document.getElementById('am-e').value = new Date(endTime).toTimeString().slice(0,5);
+        document.getElementById('pm-s').value = "00:00";
+        document.getElementById('pm-e').value = "00:00";
+        document.getElementById('in-date').valueAsDate = new Date();
         
-        renderListe(); // Jetzt definiert!
-        showTab('tab-liste');
-    } catch (err) {
-        console.error("Kritischer Fehler in addTour:", err);
-    }
-}
-
-// 4. Funktion: PDF Einzelaufstellung (generatePDF)
-function generatePDF() {
-    console.log("PDF wird generiert...");
-    if (tourenListe.length === 0) {
-        alert("Keine Daten für PDF vorhanden!");
-        return;
+        db.activeTimer = null;
+        saveDB();
+        updateTimerUI();
     }
 
-    const win = window.open('', '_blank');
-    let html = `<html><head><title>Einzelaufstellung</title><style>
-        table{width:100%; border-collapse:collapse;} th,td{border:1px solid #000; padding:8px; text-align:left;}
-        </style></head><body>
-        <h1>Stundennachweis: Einzelaufstellung</h1>
-        <table><tr><th>Datum</th><th>Info</th><th>Zeit</th></tr>`;
-    
-    tourenListe.forEach(t => {
-        html += `<tr><td>${t.datum}</td><td>${t.info}</td><td>${t.start} - ${t.ende}</td></tr>`;
-    });
-    
-    html += "</table></body></html>";
-    win.document.write(html);
-    win.document.close();
-    win.print();
-}
+    function updateTimerUI() {
+        const btnStart = document.getElementById('btn-start');
+        const btnStop = document.getElementById('btn-stop');
+        const display = document.getElementById('stopwatch');
+        const status = document.getElementById('timer-status');
 
-// 5. Navigation & Start
-function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-    const ziel = document.getElementById(id);
-    if(ziel) ziel.style.display = 'block';
-}
+        if(db.activeTimer) {
+            btnStart.style.display = "none";
+            btnStop.style.display = "inline-block";
+            status.innerText = "Tour läuft: " + db.activeTimer.tour;
+            if(!timerInterval) {
+                timerInterval = setInterval(() => {
+                    const diff = Date.now() - db.activeTimer.start;
+                    const h = Math.floor(diff/3600000).toString().padStart(2,'0');
+                    const m = Math.floor((diff%3600000)/60000).toString().padStart(2,'0');
+                    const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+                    display.innerText = `${h}:${m}:${s}`;
+                }, 1000);
+            }
+        } else {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            btnStart.style.display = "inline-block";
+            btnStop.style.display = "none";
+            display.innerText = "00:00:00";
+            status.innerText = "Bereit für die nächste Tour";
+        }
+    }
 
-window.onload = function() {
-    renderListe();
-    showTab('tab-erfassen');
-};
+    function resetForm() {
+        editId = null;
+        document.getElementById('am-s').value = "00:00";
+        document.getElementById('am-e').value = "00:00";
+        document.getElementById('pm-s').value = "00:00";
+        document.getElementById('pm-e').value = "00:00";
+        document.getElementById('in-date').valueAsDate = new Date();
+        document.getElementById('btn-cancel').style.display = "none";
+        document.getElementById('form-title').innerText = "Tourzeit erfassen";
+    }
+
+    function init() {
+        updateTourDropdowns();
+        renderDashboard();
+        updateTimerUI();
+        document.getElementById('in-date').valueAsDate = new Date();
+    }
+
+    function updateTourDropdowns() {
+        const options = db.tours.map(t=>`<option value="${t}">${t}</option>`).join('');
+        document.getElementById('sel-tour').innerHTML = options;
+        document.getElementById('timer-tour-sel').innerHTML = options;
+    }
+
+    function getSummaryHTML() {
+        const stats = {}; let totalH = 0;
+        db.entries.forEach(e => {
+            if(!stats[e.tour]) stats[e.tour] = { h: 0, m: 0 };
+            stats[e.tour].h += e.total; stats[e.tour].m += (e.total * 14);
+            totalH += e.total;
+        });
+        let html = `<table class="summary-table"><thead><tr><th>Tour</th><th>Stunden</th><th>Verdienst</th></tr></thead><tbody>`;
+        for(let t in stats) { html += `<tr><td>${t}</td><td>${stats[t].h.toFixed(2)} h</td><td>${stats[t].m.toFixed(2)} €</td></tr>`; }
+        html += `<tr class="total-row"><td><strong>GESAMT</strong></td><td><strong>${totalH.toFixed(2)} h</strong></td><td><strong>${(totalH * 14).toFixed(2)} €</strong></td></tr></tbody></table>`;
+        return html;
+    }
+
+    function showTab(id) {
+        document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('nav-' + id.split('-')[1]).classList.add('active');
+        if(id === 'tab-report') renderReport();
+        if(id === 'tab-dash') renderDashboard();
+    }
+
+    function renderDashboard() {
+        document.getElementById('dash-summary-content').innerHTML = getSummaryHTML();
+        document.getElementById('tour-list').innerHTML = db.tours.map(t => `<div>• ${t} ${t!=='Standard-Tour'?`<span onclick="deleteTour('${t}')" style="color:var(--danger);cursor:pointer;margin-left:10px;">[x]</span>`:''}</div>`).join('');
+    }
+
+    function renderReport() {
+        const mj = getMonatJahr();
+        document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann`;
+        const weeks = {};
+        db.entries.forEach(e => {
+            const key = `${e.year}-KW${e.kw}-${e.tour}`;
+            if(!weeks[key]) weeks[key] = { items: [], h: 0, days: new Set() };
+            weeks[key].items.push(e); weeks[key].h += e.total; weeks[key].days.add(e.date);
+        });
+        let html = '';
+        for(let k in weeks) {
+            const w = weeks[k], count = w.days.size, avg = w.h / count;
+            html += `<div class="week-block"><div class="week-title">${k.split('-')[1]} | Tour: ${k.split('-')[2]}</div>
+                <table class="report-table"><thead><tr><th>Datum</th><th>Vorm.</th><th>Nachm.</th><th>Std.</th><th></th></tr></thead>
+                <tbody>${w.items.map(i => `<tr><td>${i.date}</td><td>${i.am_s}-${i.am_e}</td><td>${i.pm_s}-${i.pm_e}</td><td><b>${i.total.toFixed(2)}</b></td>
+                <td style="text-align:right"><span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:10px;cursor:pointer;">✎</span><span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span></td></tr>`).join('')}</tbody>
+                </table>
+                <div class="math-detail">Abrechnung: ${w.h.toFixed(2)}h / ${count} Tage = ${avg.toFixed(2)}h Ø Schnitt | <strong>${(avg * count * 14).toFixed(2)} €</strong></div></div>`;
+        }
+        document.getElementById('report-list').innerHTML = html || "Keine Einträge.";
+        document.getElementById('report-final-table').innerHTML = getSummaryHTML();
+    }
+
+    function getMonatJahr() {
+        const monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        const now = new Date();
+        return `${monate[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    async function generatePDF() {
+        const mj = getMonatJahr();
+        const area = document.getElementById('pdf-area');
+        area.innerHTML = `
+            <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px;">
+                <div><strong>Frank Berndt</strong><br>Sellen 22<br>48565 Steinfurt</div>
+                <div style="text-align:right">Erstellt: ${new Date().toLocaleDateString()}</div>
+            </div>
+            <h2>Stundennachweis ${mj} für Busbetrieb Elkmann</h2>
+            <div id="pdf-content-inject"></div>
+            <div style="margin-top:30px; border-top:1px solid #000; padding-top:15px;">
+                <h3>Gesamtzusammenfassung Touren</h3>
+                ${getSummaryHTML()}
+            </div>
+            <div style="margin-top:40px; border-top:1px solid #000; width:60mm; padding-top:5px; font-size:9pt;">Unterschrift Frank Berndt</div>
+        `;
+        const content = document.getElementById('report-list').cloneNode(true);
+        content.querySelectorAll('td:last-child').forEach(e => e.remove());
+        area.querySelector('#pdf-content-inject').appendChild(content);
+
+        const canvas = await html2canvas(area, { scale: 2 });
+        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
+        pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
+    }
+
+    function saveEntry() {
+        const am_s = document.getElementById('am-s').value, am_e = document.getElementById('am-e').value, pm_s = document.getElementById('pm-s').value, pm_e = document.getElementById('pm-e').value;
+        const total = ((new Date(`1970-01-01T${am_e}`) - new Date(`1970-01-01T${am_s}`)) + (new Date(`1970-01-01T${pm_e}`) - new Date(`1970-01-01T${pm_s}`))) / 3600000;
+        const d = new Date(document.getElementById('in-date').value);
+        const data = { id: editId || Date.now(), tour: document.getElementById('sel-tour').value, date: document.getElementById('in-date').value, kw: getKW(d), year: d.getFullYear(), am_s, am_e, pm_s, pm_e, total: Math.abs(total) };
+        if(editId) db.entries[db.entries.findIndex(e=>e.id===editId)] = data; else db.entries.push(data);
+        db.entries.sort((a,b) => new Date(a.date) - new Date(b.date));
+        saveDB(); 
+        resetForm(); // Hier werden die Zeiten auf 0 gesetzt
+        showTab('tab-report');
+    }
+
+    function addTour() { const n = document.getElementById('new-tour-name').value.trim(); if(n && !db.tours.includes(n)) { db.tours.push(n); saveDB(); init(); } }
+    function deleteTour(n) { if(confirm("Löschen?")) { db.tours=db.tours.filter(t=>t!==n); saveDB(); init(); } }
+    function saveDB() { localStorage.setItem('frank_v24', JSON.stringify(db)); }
+    function getKW(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7); }
+    function editEntry(id) { const e = db.entries.find(x=>x.id===id); editId=id; document.getElementById('sel-tour').value=e.tour; document.getElementById('in-date').value=e.date; document.getElementById('am-s').value=e.am_s; document.getElementById('am-e').value=e.am_e; document.getElementById('pm-s').value=e.pm_s; document.getElementById('pm-e').value=e.pm_e; showTab('tab-entry'); document.getElementById('btn-cancel').style.display="block"; }
+    function deleteEntry(id) { if(confirm("Löschen?")) { db.entries=db.entries.filter(x=>x.id!==id); saveDB(); renderReport(); } }
+
+    init();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
 </script>
 </body>
 </html>
