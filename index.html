@@ -54,7 +54,7 @@
 
     <div class="nav">
         <button id="nav-dash" class="nav-btn active" onclick="showTab('tab-dash')">Dashboard</button>
-        <button id="nav-entry" class="nav-btn" onclick="showTab('tab-entry')">Erfassung</button>
+        <button id="nav-entry" class="nav-btn" onclick="showTab('tab-erfassen')">Erfassung</button>
         <button id="nav-report" class="nav-btn" onclick="showTab('tab-report')">Bericht & Export</button>
     </div>
 
@@ -81,14 +81,14 @@
         </div>
     </div>
 
-   <div id="tab-erfassen" class="tab-content">
+  <div id="tab-erfassen" class="tab-content">
     <h2>Stunden erfassen</h2>
     
-    <label>Datum:</label>
-    <input type="date" id="datum"> <label>Startzeit:</label>
-    <input type="time" id="startzeit"> <label>Endzeit:</label>
-    <input type="time" id="endzeit"> <label>Tour-Info:</label>
-    <input type="text" id="tour-info" placeholder="Tour-Nummer oder Ziel"> <button onclick="addTour()">Tour speichern</button>
+    <label for="datum">Datum:</label>
+    <input type="date" id="datum"> <label for="startzeit">Startzeit:</label>
+    <input type="time" id="startzeit"> <label for="endzeit">Endzeit:</label>
+    <input type="time" id="endzeit"> <label for="tour-info">Tour-Info:</label>
+    <input type="text" id="tour-info" placeholder="z.B. Tour 502"> <button onclick="addTour()">Tour speichern</button>
 </div>
         <button class="btn-primary" onclick="saveEntry()">Speichern</button>
         <button id="btn-cancel" onclick="resetForm()" style="display:none; width:100%; margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:10px;">Abbrechen / Zurücksetzen</button>
