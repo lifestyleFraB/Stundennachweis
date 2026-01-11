@@ -109,75 +109,89 @@
     <div id="pdf-export-container"><div id="pdf-area" class="pdf-area"></div></div>
 
 <script>
-// 1. Speicher-Array für die Touren (lädt vorhandene Daten oder startet leer)
+// Daten beim Laden aus dem Speicher holen
 let tourenListe = JSON.parse(localStorage.getItem('stundenDaten')) || [];
 
-// 2. Funktion: Neue Tour hinzufügen
-function addTour() {
-    const datum = document.getElementById('datum').value;
-    const start = document.getElementById('startzeit').value;
-    const ende = document.getElementById('endzeit').value;
-    const tourInfo = document.getElementById('tour-info').value;
+// FUNKTION 1: Speichern (Wird vom Erfassen-Button gerufen)
+function saveEntry() {
+    const d = document.getElementById('datum');
+    const s = document.getElementById('startzeit');
+    const e = document.getElementById('endzeit');
+    const i = document.getElementById('tour-info');
 
-    if (!datum || !start || !ende) {
-        alert("Bitte fülle Datum, Start und Ende aus!");
+    if (!d || !s || !e) {
+        alert("Fehler: Eingabefelder im HTML nicht gefunden!");
         return;
     }
 
     const neueTour = {
-        datum: datum,
-        start: start,
-        ende: ende,
-        info: tourInfo,
+        datum: d.value,
+        start: s.value,
+        ende: e.value,
+        info: i ? i.value : "",
         id: Date.now()
     };
+
+    if (!neueTour.datum || !neueTour.start || !neueTour.ende) {
+        alert("Bitte Datum, Start und Ende ausfüllen!");
+        return;
+    }
 
     tourenListe.push(neueTour);
     localStorage.setItem('stundenDaten', JSON.stringify(tourenListe));
     
     alert("Tour gespeichert!");
-    document.getElementById('tour-info').value = ""; // Feld leeren
-    showTab('tab-liste'); // Automatisch zur Liste wechseln
+    if(i) i.value = ""; // Feld leeren
+    showTab('tab-liste'); // Zur Liste wechseln
     renderListe();
 }
 
-// 3. Funktion: Einzelaufstellung in der Liste anzeigen
-function renderListe() {
-    const listenContainer = document.getElementById('listen-inhalt');
-    if (!listenContainer) return;
-
+// FUNKTION 2: PDF Export mit Einzelaufstellung
+function generatePDF() {
     if (tourenListe.length === 0) {
-        listenContainer.innerHTML = "<p>Keine Einträge vorhanden.</p>";
+        alert("Keine Daten zum Exportieren vorhanden!");
         return;
     }
 
-    let html = "<table border='1' style='width:100%; border-collapse: collapse;'>";
-    html += "<tr><th>Datum</th><th>Tour</th><th>Zeit</th></tr>";
+    // Wir nutzen die Druckfunktion des Browsers für eine einfache Einzelaufstellung
+    // Dafür erstellen wir kurz ein unsichtbares Fenster mit allen Daten
+    let druckFenster = window.open('', '_blank');
+    druckFenster.document.write('<html><head><title>Stundennachweis Einzelaufstellung</title>');
+    druckFenster.document.write('<style>table{width:100%; border-collapse:collapse;} th,td{border:1px solid black; padding:8px; text-align:left;}</style>');
+    druckFenster.document.write('</head><body>');
+    druckFenster.document.write('<h1>Einzelaufstellung Touren</h1>');
+    druckFenster.document.write('<table><tr><th>Datum</th><th>Tour-Info</th><th>Zeit</th></tr>');
 
-    tourenListe.forEach(tour => {
-        html += `<tr>
-            <td>${tour.datum}</td>
-            <td>${tour.info}</td>
-            <td>${tour.start} - ${tour.ende}</td>
-        </tr>`;
+    tourenListe.forEach(t => {
+        druckFenster.document.write(`<tr><td>${t.datum}</td><td>${t.info}</td><td>${t.start} - ${t.ende}</td></tr>`);
     });
-    html += "</table>";
-    listenContainer.innerHTML = html;
+
+    druckFenster.document.write('</table></body></html>');
+    druckFenster.document.close();
+    druckFenster.print();
 }
 
-// 4. Funktion: Tab-Wechsel
-function showTab(id) {
-    const tabs = document.querySelectorAll('.tab-content');
-    tabs.forEach(t => t.style.display = 'none');
+// Hilfsfunktion zum Anzeigen der Liste auf dem Bildschirm
+function renderListe() {
+    const container = document.getElementById('listen-inhalt');
+    if (!container) return;
     
-    const ziel = document.getElementById(id);
-    if (ziel) {
-        ziel.style.display = 'block';
-    }
-    if (id === 'tab-liste') renderListe();
+    let html = "<ul>";
+    tourenListe.forEach(t => {
+        html += `<li><strong>${t.datum}</strong>: ${t.info} (${t.start}-${t.ende})</li>`;
+    });
+    html += "</ul>";
+    container.innerHTML = html;
 }
 
-// 5. App-Start
+// Tab-Wechsel Logik
+function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+    const ziel = document.getElementById(id);
+    if(ziel) ziel.style.display = 'block';
+}
+
+// App Start
 window.onload = function() {
     showTab('tab-erfassen');
     renderListe();
