@@ -253,54 +253,71 @@
         return `${monate[now.getMonth()]} ${now.getFullYear()}`;
     }
 
-   async function generatePDF() {
+async function generatePDF() {
+    // 1. Sicherstellen, dass die Daten aktuell gerendert sind
+    renderReport(); 
+
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Design für das PDF aufbereiten
+    // 2. Das PDF-Layout aufbauen
+    // WICHTIG: Wir geben der Tabelle im PDF explizit schwarze Schriftfarbe
     area.innerHTML = `
-        <div style="padding: 10mm; font-family: Arial, sans-serif; color: #333;">
-            <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #7289da; padding-bottom: 10px; margin-bottom: 20px;">
+        <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background: #fff;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
                 <div>
-                    <h1 style="margin: 0; color: #7289da; font-size: 24pt;">WorkTrack Pro</h1>
+                    <h1 style="margin: 0; color: #000; font-size: 20pt;">Stundennachweis</h1>
                     <p style="margin: 5px 0;"><strong>Frank Berndt</strong> | Sellen 22 | 48565 Steinfurt</p>
                 </div>
                 <div style="text-align: right; font-size: 10pt;">
-                    Datum: ${new Date().toLocaleDateString('de-DE')}<br>
-                    Beleg-Nr: ${Date.now().toString().slice(-6)}
+                    Erstellt am: ${new Date().toLocaleDateString('de-DE')}
                 </div>
             </div>
 
-            <h2 style="text-align: center; text-transform: uppercase; margin-bottom: 20px;">Stundennachweis ${mj}</h2>
+            <h2 style="text-align: center; margin-bottom: 20px;">Monat: ${mj}</h2>
             
             <div id="pdf-content-inject"></div>
 
-            <div style="margin-top: 30px; background: #f9f9f9; padding: 15px; border-radius: 5px;">
-                <h3 style="margin-top: 0; border-bottom: 1px solid #ccc;">Zusammenfassung</h3>
-                ${getSummaryHTML()}
+            <div style="margin-top: 30px; border: 1px solid #000; padding: 10px;">
+                <h3 style="margin-top: 0;">Gesamt-Zusammenfassung</h3>
+                <div id="pdf-summary-inject"></div>
             </div>
 
             <div style="margin-top: 50px; display: flex; justify-content: space-between;">
                 <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
                     Unterschrift Frank Berndt
                 </div>
-                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
-                    Bestätigung Busbetrieb Elkmann
-                </div>
             </div>
         </div>
     `;
 
-    // Inhalte einfügen und Bearbeitungs-Symbole entfernen
-    const content = document.getElementById('report-list').cloneNode(true);
-    content.querySelectorAll('td:last-child').forEach(e => e.remove()); // Entfernt Spalte mit ✎ und 🗑
-    area.querySelector('#pdf-content-inject').appendChild(content);
+    // 3. Den detaillierten Bericht einfügen (Wochen-Blöcke)
+    const reportContent = document.getElementById('report-list').cloneNode(true);
+    // Entferne die Aktions-Spalte (Löschen/Bearbeiten) für das PDF
+    reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
+    // Styles für das PDF korrigieren (Schwarz auf Weiß)
+    reportContent.querySelectorAll('*').forEach(el => {
+        el.style.color = "#000";
+        el.style.backgroundColor = "transparent";
+    });
+    area.querySelector('#pdf-content-inject').appendChild(reportContent);
 
-    // PDF Generierung mit hoher Qualität
+    // 4. Die Zusammenfassungs-Tabelle einfügen
+    const summaryHTML = getSummaryHTML();
+    const summaryDiv = area.querySelector('#pdf-summary-inject');
+    summaryDiv.innerHTML = summaryHTML;
+    
+    // Hier erzwingen wir schwarze Schrift für die Zusammenfassungs-Tabelle
+    summaryDiv.querySelectorAll('table, td, th, strong').forEach(el => {
+        el.style.color = "#000";
+        el.style.borderColor = "#000";
+    });
+
+    // 5. PDF erstellen
     const canvas = await html2canvas(area, { 
-        scale: 3, // Höhere Skalierung für scharfen Text
-        useCORS: true,
-        logging: false
+        scale: 2,
+        logging: false,
+        backgroundColor: "#ffffff" 
     });
 
     const imgData = canvas.toDataURL('image/png');
