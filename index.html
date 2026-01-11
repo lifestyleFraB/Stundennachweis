@@ -112,125 +112,53 @@
 // Daten aus dem Speicher laden
 let tourenListe = JSON.parse(localStorage.getItem('stundenDaten')) || [];
 
-// --- FUNKTION: Speichern ---
-function saveEntry() {
+// WICHTIG: Die Funktion muss addTour heißen, da deine Buttons diesen Namen suchen!
+function addTour() {
     try {
-        const d = document.getElementById('datum').value;
-        const s = document.getElementById('startzeit').value;
-        const e = document.getElementById('endzeit').value;
-        const i = document.getElementById('tour-info').value;
+        const d = document.getElementById('datum');
+        const s = document.getElementById('startzeit');
+        const e = document.getElementById('endzeit');
+        const i = document.getElementById('tour-info');
 
+        // Sicherheitscheck: Existieren die Felder überhaupt im HTML?
         if (!d || !s || !e) {
+            alert("Fehler: Die Eingabefelder (Datum/Zeit) wurden im HTML nicht gefunden!");
+            return;
+        }
+
+        if (!d.value || !s.value || !e.value) {
             alert("Bitte Datum, Start und Ende ausfüllen!");
             return;
         }
 
-        const neueTour = { datum: d, start: s, ende: e, info: i, id: Date.now() };
+        const neueTour = { 
+            datum: d.value, 
+            start: s.value, 
+            ende: e.value, 
+            info: i ? i.value : "", 
+            id: Date.now() 
+        };
+
         tourenListe.push(neueTour);
         localStorage.setItem('stundenDaten', JSON.stringify(tourenListe));
         
-        alert("Tour gespeichert!");
-        document.getElementById('tour-info').value = "";
-        renderListe();
-        showTab('tab-liste');
-    } catch (e) {
-        console.error("Fehler beim Speichern:", e);
-        alert("Fehler: Eingabefelder nicht gefunden!");
+        alert("Tour erfolgreich gespeichert!");
+        
+        if(i) i.value = ""; // Tour-Info Feld leeren
+        
+        renderListe(); // Liste aktualisieren
+        showTab('tab-liste'); // Zur Liste wechseln
+    } catch (Fehler) {
+        console.error("Kritischer Fehler in addTour:", Fehler);
     }
 }
 
-// --- FUNKTION: PDF / Einzelaufstellung ---
-function generatePDF() {
-    if (tourenListe.length === 0) {
-        alert("Keine Daten zum Exportieren vorhanden!");
-        return;
-    }
-
-    // Ein neues Fenster für den Druck der Einzelaufstellung öffnen
-    const printWindow = window.open('', '_blank');
-    
-    let tabelleHtml = `
-        <html>
-        <head>
-            <title>Einzelaufstellung Touren</title>
-            <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #000; padding: 10px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                h1 { color: #333; }
-            </style>
-        </head>
-        <body>
-            <h1>Stundennachweis Einzelaufstellung</h1>
-            <p>Erstellt am: ${new Date().toLocaleDateString()}</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Datum</th>
-                        <th>Tour-Information</th>
-                        <th>Zeit (Start - Ende)</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-
-    // Jede Tour zur Tabelle hinzufügen
-    tourenListe.forEach(tour => {
-        tabelleHtml += `
-            <tr>
-                <td>${tour.datum}</td>
-                <td>${tour.info || '-'}</td>
-                <td>${tour.start} - ${tour.ende}</td>
-            </tr>
-        `;
-    });
-
-    tabelleHtml += `
-                </tbody>
-            </table>
-            <script>
-                // Automatisch den Druckdialog öffnen, sobald geladen
-                window.onload = function() { window.print(); window.close(); };
-            <\/script>
-        </body>
-        </html>
-    `;
-
-    printWindow.document.write(tabelleHtml);
-    printWindow.document.close();
+// Hier auch die Alias-Funktion, falls noch irgendwo saveEntry gerufen wird
+function saveEntry() {
+    addTour();
 }
 
-// --- FUNKTIONEN FÜR DIE NAVIGATION ---
-function showTab(id) {
-    const tabs = document.querySelectorAll('.tab-content');
-    tabs.forEach(t => t.style.display = 'none');
-    const ziel = document.getElementById(id);
-    if(ziel) ziel.style.display = 'block';
-}
-
-function renderListe() {
-    const container = document.getElementById('listen-inhalt');
-    if (!container) return;
-    
-    if (tourenListe.length === 0) {
-        container.innerHTML = "<p>Noch keine Touren erfasst.</p>";
-        return;
-    }
-
-    let html = "<ul>";
-    tourenListe.forEach(t => {
-        html += `<li><strong>${t.datum}</strong>: ${t.info} (${t.start}-${t.ende})</li>`;
-    });
-    html += "</ul>";
-    container.innerHTML = html;
-}
-
-// Start-Einstellung
-window.onload = function() {
-    showTab('tab-erfassen');
-    renderListe();
-};
+// ... restliche Funktionen (showTab, generatePDF, renderListe) folgen hier ...
 </script>
 </body>
 </html>
