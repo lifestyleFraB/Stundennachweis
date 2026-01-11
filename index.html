@@ -41,6 +41,64 @@
 
         #pdf-export-container { position: absolute; left: -9999px; }
         .pdf-area { width: 210mm; padding: 20mm; background: white; color: black; font-family: Arial, sans-serif; }
+@media print {
+    /* 1. Alles ausblenden */
+    body * {
+        visibility: hidden;
+        background: white !important;
+        color: black !important;
+    }
+
+    /* 2. Nur den Berichtsbereich einblenden */
+    #tab-report, #tab-report * {
+        visibility: visible;
+    }
+
+    /* 3. Störende Elemente innerhalb des Berichts entfernen */
+    #tab-report button, 
+    #tab-report input,
+    .nav, 
+    .app-header,
+    td:last-child, /* Entfernt die Spalte mit den Icons (Bearbeiten/Löschen) */
+    th:last-child {
+        display: none !important;
+    }
+
+    /* 4. Layout für Papier optimieren */
+    #tab-report {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        display: block !important; /* Sicherstellen, dass der Tab sichtbar ist */
+    }
+
+    .week-block {
+        border: 1px solid #eee;
+        margin-bottom: 20px;
+        page-break-inside: avoid; /* Verhindert das Zerreißen von Tabellen */
+    }
+
+    .summary-table {
+        width: 100% !important;
+        border-collapse: collapse;
+    }
+
+    .summary-table th, .summary-table td {
+        border: 1px solid #ddd !important;
+        color: black !important;
+    }
+
+    /* Titel für den Druck schöner machen */
+    #report-dynamic-title {
+        font-size: 18pt;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+}
+		
     </style>
 	<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
