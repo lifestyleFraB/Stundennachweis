@@ -278,7 +278,47 @@
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
         pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
     }
+// Funktion 1: Daten als .json Datei herunterladen
+function backupData() {
+    const dataStr = JSON.stringify(db, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `WorkTrack_Backup_${new Date().toISOString().slice(0,10)}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
 
+// Funktion 2: Daten aus einer Datei einlesen
+function restoreData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedDb = JSON.parse(e.target.result);
+            
+            // Kurze Prüfung, ob die Datei valide aussieht
+            if (importedDb.entries && importedDb.tours) {
+                if (confirm("Möchtest du die aktuellen Daten mit dem Backup überschreiben?")) {
+                    db = importedDb;
+                    saveDB();
+                    init();
+                    alert("Daten erfolgreich wiederhergestellt!");
+                }
+            } else {
+                alert("Ungültige Datei!");
+            }
+        } catch (err) {
+            alert("Fehler beim Lesen der Datei.");
+        }
+    };
+    reader.readAsText(file);
+}
+	
     function saveEntry() {
         const am_s = document.getElementById('am-s').value, am_e = document.getElementById('am-e').value, pm_s = document.getElementById('pm-s').value, pm_e = document.getElementById('pm-e').value;
         const total = ((new Date(`1970-01-01T${am_e}`) - new Date(`1970-01-01T${am_s}`)) + (new Date(`1970-01-01T${pm_e}`) - new Date(`1970-01-01T${pm_s}`))) / 3600000;
