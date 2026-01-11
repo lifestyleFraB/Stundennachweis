@@ -76,6 +76,9 @@
         display: block !important; /* Sicherstellen, dass der Tab sichtbar ist */
     }
 
+
+
+			
     .week-block {
         border: 1px solid #eee;
         margin-bottom: 20px;
@@ -105,7 +108,17 @@
 </head>
 
 <body>
+<div id="tab-report" class="container">
+    <div id="print-header" style="display:none;">
+        <h2 id="dynamic-print-title" style="text-align: center; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px;"></h2>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt;">
+            <span><strong>Fahrer:</strong> Frank Berndt</span>
+            <span><strong>Betrieb:</strong> Busbetrieb Elkmann</span>
+        </div>
+    </div>
 
+    <div id="report-list"></div>
+    </div>
     <div class="app-header">
         <strong>Frank Berndt</strong> | Sellen 22 | 48565 Steinfurt
     </div>
