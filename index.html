@@ -104,7 +104,14 @@
             <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">Excel Export</button>
         </div>
     </div>
-
+<div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--accent);">
+    <h4>Daten-Sicherung</h4>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <button onclick="backupData()" style="background:#5865f2; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Daten sichern (Download)</button>
+        <button onclick="document.getElementById('import-file').click()" style="background:#4e5058; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Daten wiederherstellen</button>
+    </div>
+    <input type="file" id="import-file" style="display:none" onchange="restoreData(event)" accept=".json">
+</div>
     <div id="pdf-export-container"><div id="pdf-area" class="pdf-area"></div></div>
 
 <script>
