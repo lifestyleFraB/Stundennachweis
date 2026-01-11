@@ -113,7 +113,7 @@
     <input type="file" id="import-file" style="display:none" onchange="restoreData(event)" accept=".json">
 </div>
     <div id="pdf-export-container"><div id="pdf-area" class="pdf-area"></div></div>
-
+<button onclick="window.print()" style="background:#444; color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">System-Druck (Alternative)</button>
 <script>
 
     let db = JSON.parse(localStorage.getItem('frank_v24')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null };
