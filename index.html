@@ -121,7 +121,7 @@
                 <h2 id="print-month-year" style="margin: 5px 0; font-size: 14pt;"></h2>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt;">
-                <div><strong>Fahrer:</strong> Frank Berndt<br>Sellen 22 | 48565 Steinfurt</div>
+                <div><strong>Fahrer:</strong> Frank Berndt<br>Sellen 22 | 48565 Steinfurt<br> Mobil: 01725374047</div>
                 <div style="text-align: right;"><strong>Erstellt am:</strong> <span id="print-current-date"></span></div>
             </div>
         </div>
@@ -272,20 +272,20 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Layout für PDF (Lichtgrau statt Schwarz)
+    // Layout-Vorbereitung mit Handynummer und 20% Grau
     area.innerHTML = `
-        <div style="padding: 15mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 180mm;">
-            
+        <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 190mm;">
             <div style="text-align: center; background-color: #e6e6e6; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 18pt; color: #000;">Stundennachweis Busbetrieb Elkmann</h1>
+                <h1 style="margin: 0; font-size: 18pt;">Stundennachweis Busbetrieb Elkmann</h1>
                 <h2 style="margin: 5px 0; font-size: 14pt; color: #333;">${mj}</h2>
             </div>
 
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt; padding: 0 5px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt;">
                 <div>
                     <strong>Fahrer:</strong><br>
                     Frank Berndt<br>
-                    Sellen 22 | 48565 Steinfurt
+                    Sellen 22 | 48565 Steinfurt<br>
+                    <strong>Mobil: 01725374047</strong>
                 </div>
                 <div style="text-align: right;">
                     <strong>Erstellt am:</strong><br>
@@ -300,77 +300,66 @@ async function generatePDF() {
                 <div id="pdf-summary-inject" style="padding: 10px;"></div>
             </div>
 
-            <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
-                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
-                    Unterschrift Frank Berndt
-                </div>
-                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
-                    Bestätigung Betrieb (Stempel)
-                </div>
+            <div style="margin-top: 40px; display: flex; justify-content: space-between; page-break-inside: avoid;">
+                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">Unterschrift Frank Berndt</div>
+                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">Bestätigung Betrieb</div>
             </div>
         </div>
     `;
 
-    // Berichtsinhalt klonen und für PDF aufbereiten
+    // Daten einfügen
     const reportContent = document.getElementById('report-list').cloneNode(true);
-    
-    // Spalte für Bearbeiten/Löschen entfernen
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
-
-    // Styles für PDF-Tabellen anpassen (Seitentrennung verhindern & Grautöne)
+    
+    // Styling für PDF-Tabellen
     reportContent.querySelectorAll('.week-block').forEach(block => {
-        block.style.pageBreakInside = "avoid"; // Verhindert das Brechen einer Woche auf zwei Seiten
-        block.style.marginBottom = "20px";
+        block.style.pageBreakInside = "avoid";
         block.style.border = "1px solid #ddd";
-        
+        block.style.marginBottom = "15px";
         const title = block.querySelector('.week-title');
-        if(title) {
-            title.style.backgroundColor = "#f2f2f2"; // Ganz helles Grau für Wochen-Header
-            title.style.color = "#000";
-        }
-    });
-
-    reportContent.querySelectorAll('table').forEach(table => {
-        table.style.width = "100%";
-        table.style.borderCollapse = "collapse";
-        table.querySelectorAll('th, td').forEach(cell => {
-            cell.style.border = "1px solid #ddd";
-            cell.style.color = "#000";
-            cell.style.padding = "6px";
-        });
+        if(title) title.style.backgroundColor = "#f2f2f2";
     });
 
     area.querySelector('#pdf-content-inject').appendChild(reportContent);
     area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
     
-    // Farben in der Zusammenfassungs-Tabelle korrigieren
-    const sumTable = area.querySelector('#pdf-summary-inject table');
-    if(sumTable) {
-        sumTable.style.width = "100%";
-        sumTable.querySelectorAll('th, td').forEach(c => {
+    // Tabellen-Feinschliff
+    area.querySelectorAll('table').forEach(t => {
+        t.style.width = "100%";
+        t.style.borderCollapse = "collapse";
+        t.querySelectorAll('th, td').forEach(c => {
             c.style.border = "1px solid #ddd";
-            c.style.color = "#000";
+            c.style.padding = "6px";
         });
-        sumTable.querySelector('.total-row').style.backgroundColor = "#e6e6e6"; // 20% Schwarz für die Summe
-    }
-
-    // PDF mit html2canvas generieren
-    const canvas = await html2canvas(area, { 
-        scale: 2, 
-        backgroundColor: "#fff",
-        useCORS: true 
     });
-    
+
+    // Multi-Page Logik
+    const canvas = await html2canvas(area, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL('image/png');
+    
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
     const pdfWidth = 210;
-    const imgWidth = pdfWidth;
+    const pdfPageHeight = 297; // A4 Höhe in mm
+    const imgWidth = 210;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Erste Seite
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfPageHeight;
+
+    // Weitere Seiten hinzufügen, falls nötig
+    while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfPageHeight;
+    }
+
     pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
-    
-    area.innerHTML = ""; // Temporären Arbeitsbereich wieder leeren
+    area.innerHTML = ""; 
 }
 
     // Hilfsfunktionen
