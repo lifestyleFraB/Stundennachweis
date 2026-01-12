@@ -298,10 +298,12 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
+    // Layout-Vorbereitung mit 20% Grau (#cccccc) statt Schwarz
     area.innerHTML = `
         <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 190mm;">
-            <div style="text-align: center; background-color: #e6e6e6; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 18pt;">Stundennachweis Busbetrieb Elkmann</h1>
+            
+            <div style="text-align: center; background-color: #cccccc; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 18pt; color: #000;">Stundennachweis Busbetrieb Elkmann</h1>
                 <h2 style="margin: 5px 0; font-size: 14pt; color: #333;">${mj}</h2>
             </div>
 
@@ -321,7 +323,9 @@ async function generatePDF() {
             <div id="pdf-content-inject"></div>
 
             <div style="margin-top: 30px; border: 1px solid #ddd; page-break-inside: avoid;">
-                <h3 style="margin: 0; background-color: #e6e6e6; padding: 10px; font-size: 12pt; border-bottom: 1px solid #ddd;">Gesamt-Zusammenfassung (Netto-Abrechnung)</h3>
+                <h3 style="margin: 0; background-color: #cccccc; padding: 10px; font-size: 12pt; border-bottom: 1px solid #ddd; color: #000;">
+                    Gesamt-Zusammenfassung (Netto-Abrechnung)
+                </h3>
                 <div id="pdf-summary-inject" style="padding: 0;"></div>
             </div>
 
@@ -332,25 +336,38 @@ async function generatePDF() {
         </div>
     `;
 
-    // Injektion und Styling
+    // Daten injizieren
     area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
     const reportContent = document.getElementById('report-list').cloneNode(true);
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
     area.querySelector('#pdf-content-inject').appendChild(reportContent);
 
-    // Alle Tabellen im PDF auf saubere Ausrichtung trimmen
+    // Styling der Tabellen für das PDF (Graustufen optimiert)
     area.querySelectorAll('table').forEach(table => {
         table.style.width = "100%";
         table.style.borderCollapse = "collapse";
-        table.querySelectorAll('th, td').forEach(cell => {
+        
+        // Tabellenköpfe ebenfalls in 20% Grau
+        table.querySelectorAll('th').forEach(th => {
+            th.style.backgroundColor = "#cccccc";
+            th.style.border = "1px solid #999";
+            th.style.padding = "8px";
+            th.style.color = "#000";
+        });
+
+        table.querySelectorAll('td').forEach(cell => {
             cell.style.border = "1px solid #ddd";
             cell.style.padding = "8px";
             cell.style.color = "#000";
         });
     });
 
-    // Multi-Page Rendering
-    const canvas = await html2canvas(area, { scale: 2 });
+    // Summenzeile in der Zusammenfassung explizit auf 20% Grau setzen
+    const totalRow = area.querySelector('.total-row');
+    if(totalRow) totalRow.style.backgroundColor = "#cccccc";
+
+    // Multi-Page Rendering Logik
+    const canvas = await html2canvas(area, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
     const imgWidth = 210;
@@ -359,9 +376,11 @@ async function generatePDF() {
     let heightLeft = imgHeight;
     let position = 0;
 
+    // Erste Seite
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
+    // Folgeseiten falls nötig
     while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -370,7 +389,7 @@ async function generatePDF() {
     }
 
     pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
-    area.innerHTML = "";
+    area.innerHTML = ""; // Arbeitsbereich leeren
 }
 
     // Hilfsfunktionen
