@@ -242,17 +242,43 @@
         document.getElementById('report-final-table').innerHTML = getSummaryHTML();
     }
 
-    function getSummaryHTML() {
-        const stats = {}; let totalH = 0;
-        db.entries.forEach(e => {
-            if(!stats[e.tour]) stats[e.tour] = { h: 0 };
-            stats[e.tour].h += e.total; totalH += e.total;
-        });
-        let html = `<table class="summary-table"><thead><tr><th>Tour</th><th>Stunden</th><th>Verdienst</th></tr></thead><tbody>`;
-        for(let t in stats) { html += `<tr><td>${t}</td><td>${stats[t].h.toFixed(2)} h</td><td>${(stats[t].h * 14).toFixed(2)} €</td></tr>`; }
-        html += `<tr class="total-row"><td><strong>GESAMT</strong></td><td><strong>${totalH.toFixed(2)} h</strong></td><td><strong>${(totalH * 14).toFixed(2)} €</strong></td></tr></tbody></table>`;
-        return html;
+function getSummaryHTML() {
+    const stats = {}; let totalH = 0;
+    db.entries.forEach(e => {
+        if(!stats[e.tour]) stats[e.tour] = { h: 0 };
+        stats[e.tour].h += e.total; totalH += e.total;
+    });
+
+    let html = `
+    <table class="summary-table" style="width: 100%; border-collapse: collapse; font-family: monospace;">
+        <thead>
+            <tr style="border-bottom: 2px solid #ddd;">
+                <th style="text-align: left; padding: 8px;">Tour-Bezeichnung</th>
+                <th style="text-align: right; padding: 8px; width: 80px;">Stunden</th>
+                <th style="text-align: right; padding: 8px; width: 100px;">Verdienst</th>
+            </tr>
+        </thead>
+        <tbody>`;
+    
+    for(let t in stats) { 
+        html += `
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">${t}</td>
+                <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${stats[t].h.toFixed(2)} h</td>
+                <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${(stats[t].h * 14).toFixed(2)} €</td>
+            </tr>`; 
     }
+    
+    html += `
+            <tr class="total-row" style="background-color: #e6e6e6; font-weight: bold;">
+                <td style="padding: 8px;">GESAMT-SUMME</td>
+                <td style="text-align: right; padding: 8px;">${totalH.toFixed(2)} h</td>
+                <td style="text-align: right; padding: 8px;">${(totalH * 14).toFixed(2)} €</td>
+            </tr>
+        </tbody>
+    </table>`;
+    return html;
+}
 
     function exportCSV() {
         if (db.entries.length === 0) return alert("Keine Daten!");
@@ -272,7 +298,6 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Layout-Vorbereitung mit Handynummer und 20% Grau
     area.innerHTML = `
         <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 190mm;">
             <div style="text-align: center; background-color: #e6e6e6; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
@@ -285,7 +310,7 @@ async function generatePDF() {
                     <strong>Fahrer:</strong><br>
                     Frank Berndt<br>
                     Sellen 22 | 48565 Steinfurt<br>
-                    <strong>Mobil: 01725374047</strong>
+                    <strong>Mobil: 0172-5374047</strong>
                 </div>
                 <div style="text-align: right;">
                     <strong>Erstellt am:</strong><br>
@@ -296,70 +321,56 @@ async function generatePDF() {
             <div id="pdf-content-inject"></div>
 
             <div style="margin-top: 30px; border: 1px solid #ddd; page-break-inside: avoid;">
-                <h3 style="margin: 0; background-color: #e6e6e6; padding: 10px; font-size: 12pt; border-bottom: 1px solid #ddd;">Gesamt-Zusammenfassung</h3>
-                <div id="pdf-summary-inject" style="padding: 10px;"></div>
+                <h3 style="margin: 0; background-color: #e6e6e6; padding: 10px; font-size: 12pt; border-bottom: 1px solid #ddd;">Gesamt-Zusammenfassung (Netto-Abrechnung)</h3>
+                <div id="pdf-summary-inject" style="padding: 0;"></div>
             </div>
 
-            <div style="margin-top: 40px; display: flex; justify-content: space-between; page-break-inside: avoid;">
-                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">Unterschrift Frank Berndt</div>
-                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">Bestätigung Betrieb</div>
+            <div style="margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid;">
+                <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Unterschrift Fahrer</div>
+                <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Bestätigung Betrieb</div>
             </div>
         </div>
     `;
 
-    // Daten einfügen
+    // Injektion und Styling
+    area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
     const reportContent = document.getElementById('report-list').cloneNode(true);
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
-    
-    // Styling für PDF-Tabellen
-    reportContent.querySelectorAll('.week-block').forEach(block => {
-        block.style.pageBreakInside = "avoid";
-        block.style.border = "1px solid #ddd";
-        block.style.marginBottom = "15px";
-        const title = block.querySelector('.week-title');
-        if(title) title.style.backgroundColor = "#f2f2f2";
-    });
-
     area.querySelector('#pdf-content-inject').appendChild(reportContent);
-    area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
-    
-    // Tabellen-Feinschliff
-    area.querySelectorAll('table').forEach(t => {
-        t.style.width = "100%";
-        t.style.borderCollapse = "collapse";
-        t.querySelectorAll('th, td').forEach(c => {
-            c.style.border = "1px solid #ddd";
-            c.style.padding = "6px";
+
+    // Alle Tabellen im PDF auf saubere Ausrichtung trimmen
+    area.querySelectorAll('table').forEach(table => {
+        table.style.width = "100%";
+        table.style.borderCollapse = "collapse";
+        table.querySelectorAll('th, td').forEach(cell => {
+            cell.style.border = "1px solid #ddd";
+            cell.style.padding = "8px";
+            cell.style.color = "#000";
         });
     });
 
-    // Multi-Page Logik
-    const canvas = await html2canvas(area, { scale: 2, useCORS: true });
+    // Multi-Page Rendering
+    const canvas = await html2canvas(area, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
-    
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-    const pdfWidth = 210;
-    const pdfPageHeight = 297; // A4 Höhe in mm
     const imgWidth = 210;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    
+    const pageHeight = 297;
     let heightLeft = imgHeight;
     let position = 0;
 
-    // Erste Seite
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfPageHeight;
+    heightLeft -= pageHeight;
 
-    // Weitere Seiten hinzufügen, falls nötig
-    while (heightLeft > 0) {
+    while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfPageHeight;
+        heightLeft -= pageHeight;
     }
 
     pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
-    area.innerHTML = ""; 
+    area.innerHTML = "";
 }
 
     // Hilfsfunktionen
