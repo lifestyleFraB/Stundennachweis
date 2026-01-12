@@ -298,7 +298,7 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Hintergrundfarbe auf hellgrau (#e0e0e0 = ca 20% schwarz)
+    // Definition für 20% Schwarz (Lichtgrau)
     const grau20 = "#e0e0e0";
 
     area.innerHTML = `
@@ -338,46 +338,50 @@ async function generatePDF() {
         </div>
     `;
 
-    // Daten einfügen
-    area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
+    // Berichtsinhalt klonen
     const reportContent = document.getElementById('report-list').cloneNode(true);
+    
+    // Bearbeiten-Spalte entfernen
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
-    area.querySelector('#pdf-content-inject').appendChild(reportContent);
 
-    // Tabellen-Design anpassen (Kein Schwarz!)
+    // ALLE Tour-Balken und Wochen-Header auf Grau umstellen
+    // Wir suchen nach den Klassen, die du im HTML für die Touren nutzt (meist .week-title oder .tour-header)
+    const tourBalken = reportContent.querySelectorAll('.week-title, .tour-header, [style*="background-color: rgb(30, 41, 59)"]');
+    tourBalken.forEach(balken => {
+        balken.style.setProperty('background-color', grau20, 'important');
+        balken.style.setProperty('color', '#000', 'important');
+        balken.style.border = "1px solid #ccc";
+    });
+
+    area.querySelector('#pdf-content-inject').appendChild(reportContent);
+    area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
+
+    // Tabellen-Feinschliff
     area.querySelectorAll('table').forEach(table => {
         table.style.width = "100%";
         table.style.borderCollapse = "collapse";
+        table.style.marginBottom = "15px";
         
         table.querySelectorAll('th').forEach(th => {
             th.style.backgroundColor = grau20;
             th.style.color = "#000";
             th.style.border = "1px solid #ccc";
-            th.style.padding = "8px";
         });
-
-        table.querySelectorAll('td').forEach(cell => {
-            cell.style.border = "1px solid #ddd";
-            cell.style.padding = "8px";
-            cell.style.color = "#000";
+        table.querySelectorAll('td').forEach(td => {
+            td.style.border = "1px solid #ddd";
+            td.style.color = "#000";
         });
     });
 
-    // Summenzeile in der Tabelle ebenfalls grau färben
-    const trTotal = area.querySelector('.total-row');
-    if(trTotal) {
-        trTotal.style.backgroundColor = grau20 + " !important";
-        trTotal.style.color = "#000";
+    // Summenzeile der Zusammenfassung
+    const sumTotalRow = area.querySelector('.total-row');
+    if(sumTotalRow) {
+        sumTotalRow.style.setProperty('background-color', grau20, 'important');
+        sumTotalRow.style.color = "#000";
     }
 
-    // PDF Erstellung
-    const canvas = await html2canvas(area, { 
-        scale: 2, 
-        logging: false, 
-        useCORS: true,
-        backgroundColor: "#ffffff" 
-    });
-    
+    // PDF Erstellung über mehrere Seiten
+    const canvas = await html2canvas(area, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
     const imgWidth = 210;
@@ -396,7 +400,7 @@ async function generatePDF() {
         heightLeft -= pageHeight;
     }
 
-    pdf.save(`Stundennachweis_Frank_Berndt_${mj.replace(' ','_')}.pdf`);
+    pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
     area.innerHTML = "";
 }
 
