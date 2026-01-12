@@ -327,69 +327,77 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Layout-Vorbereitung (Schwarz auf Weiß)
+    // Layout-Vorbereitung (Schwarz auf Weiß für den Druck)
     area.innerHTML = `
         <div style="padding: 15mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 180mm;">
-            <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 18pt; color: #000;">Stundennachweis Busbetrieb Elkmann</h1>
+                <h2 style="margin: 5px 0; font-size: 14pt; color: #333;">${mj}</h2>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt;">
                 <div>
-                    <h1 style="margin: 0; color: #000; font-size: 20pt;">Stundennachweis</h1>
-                    <p style="margin: 5px 0;"><strong>Frank Berndt</strong> | Sellen 22 | 48565 Steinfurt</p>
+                    <strong>Fahrer:</strong><br>
+                    Frank Berndt<br>
+                    Sellen 22 | 48565 Steinfurt
                 </div>
-                <div style="text-align: right; font-size: 10pt;">
-                    Erstellt am: ${new Date().toLocaleDateString('de-DE')}
+                <div style="text-align: right;">
+                    <strong>Erstellt am:</strong><br>
+                    ${new Date().toLocaleDateString('de-DE')}
                 </div>
             </div>
-            <h2 style="text-align: center; margin-bottom: 20px;">Monat: ${mj}</h2>
+
             <div id="pdf-content-inject"></div>
+
             <div style="margin-top: 30px; border: 1px solid #000; padding: 10px; page-break-inside: avoid;">
-                <h3 style="margin-top: 0;">Gesamt-Zusammenfassung</h3>
+                <h3 style="margin-top: 0; border-bottom: 1px solid #eee;">Gesamt-Zusammenfassung</h3>
                 <div id="pdf-summary-inject"></div>
             </div>
-            <div style="margin-top: 50px; border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
-                Unterschrift Frank Berndt
+
+            <div style="margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
+                    Unterschrift Frank Berndt
+                </div>
+                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
+                    Bestätigung Betrieb (Stempel)
+                </div>
             </div>
         </div>
     `;
 
     // Inhalte einfügen & Styles bereinigen
     const reportContent = document.getElementById('report-list').cloneNode(true);
+    // Entferne die Spalte mit den Bearbeiten-Icons für das PDF
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
+    
+    // Farben für PDF auf Schwarz/Weiß zwingen
     reportContent.querySelectorAll('*').forEach(el => {
         el.style.color = "#000";
         el.style.backgroundColor = "transparent";
-        el.style.borderColor = "#eee";
+        el.style.borderColor = "#ddd";
     });
+
     area.querySelector('#pdf-content-inject').appendChild(reportContent);
     area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
-    area.querySelector('#pdf-summary-inject').querySelectorAll('*').forEach(el => el.style.color = "#000");
+    
+    // Summary-Tabelle im PDF ebenfalls schwarz färben
+    area.querySelector('#pdf-summary-inject').querySelectorAll('*').forEach(el => {
+        el.style.color = "#000";
+        el.style.borderColor = "#ddd";
+    });
 
-    // PDF Generierung mit Multi-Page Logik
+    // PDF Generierung
     const canvas = await html2canvas(area, { scale: 2, backgroundColor: "#fff" });
     const imgData = canvas.toDataURL('image/png');
     
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
     const pdfWidth = 210;
-    const pdfPageHeight = 297; 
     const imgWidth = pdfWidth;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    // Erste Seite hinzufügen
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfPageHeight;
-
-    // Weitere Seiten hinzufügen, falls nötig
-    while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfPageHeight;
-    }
-
-    pdf.save(`Stundennachweis_${mj.replace(' ','_')}.pdf`);
-    area.innerHTML = "";
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
+    area.innerHTML = ""; // Temporären Bereich leeren
 }
 // Funktion 1: Daten als .json Datei herunterladen
 function backupData() {
