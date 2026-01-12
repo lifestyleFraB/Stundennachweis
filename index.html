@@ -298,11 +298,13 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Layout-Vorbereitung mit 20% Grau (#cccccc) statt Schwarz
+    // Hintergrundfarbe auf hellgrau (#e0e0e0 = ca 20% schwarz)
+    const grau20 = "#e0e0e0";
+
     area.innerHTML = `
-        <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 190mm;">
+        <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background-color: #ffffff; width: 190mm;">
             
-            <div style="text-align: center; background-color: #cccccc; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <div style="text-align: center; background-color: ${grau20} !important; -webkit-print-color-adjust: exact; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ccc;">
                 <h1 style="margin: 0; font-size: 18pt; color: #000;">Stundennachweis Busbetrieb Elkmann</h1>
                 <h2 style="margin: 5px 0; font-size: 14pt; color: #333;">${mj}</h2>
             </div>
@@ -323,36 +325,35 @@ async function generatePDF() {
             <div id="pdf-content-inject"></div>
 
             <div style="margin-top: 30px; border: 1px solid #ddd; page-break-inside: avoid;">
-                <h3 style="margin: 0; background-color: #cccccc; padding: 10px; font-size: 12pt; border-bottom: 1px solid #ddd; color: #000;">
-                    Gesamt-Zusammenfassung (Netto-Abrechnung)
-                </h3>
+                <div style="background-color: ${grau20} !important; -webkit-print-color-adjust: exact; padding: 10px; border-bottom: 1px solid #ddd;">
+                    <h3 style="margin: 0; font-size: 12pt; color: #000;">Gesamt-Zusammenfassung (Netto-Abrechnung)</h3>
+                </div>
                 <div id="pdf-summary-inject" style="padding: 0;"></div>
             </div>
 
             <div style="margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid;">
-                <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Unterschrift Fahrer</div>
+                <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Unterschrift Frank Berndt</div>
                 <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Bestätigung Betrieb</div>
             </div>
         </div>
     `;
 
-    // Daten injizieren
+    // Daten einfügen
     area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
     const reportContent = document.getElementById('report-list').cloneNode(true);
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
     area.querySelector('#pdf-content-inject').appendChild(reportContent);
 
-    // Styling der Tabellen für das PDF (Graustufen optimiert)
+    // Tabellen-Design anpassen (Kein Schwarz!)
     area.querySelectorAll('table').forEach(table => {
         table.style.width = "100%";
         table.style.borderCollapse = "collapse";
         
-        // Tabellenköpfe ebenfalls in 20% Grau
         table.querySelectorAll('th').forEach(th => {
-            th.style.backgroundColor = "#cccccc";
-            th.style.border = "1px solid #999";
-            th.style.padding = "8px";
+            th.style.backgroundColor = grau20;
             th.style.color = "#000";
+            th.style.border = "1px solid #ccc";
+            th.style.padding = "8px";
         });
 
         table.querySelectorAll('td').forEach(cell => {
@@ -362,12 +363,21 @@ async function generatePDF() {
         });
     });
 
-    // Summenzeile in der Zusammenfassung explizit auf 20% Grau setzen
-    const totalRow = area.querySelector('.total-row');
-    if(totalRow) totalRow.style.backgroundColor = "#cccccc";
+    // Summenzeile in der Tabelle ebenfalls grau färben
+    const trTotal = area.querySelector('.total-row');
+    if(trTotal) {
+        trTotal.style.backgroundColor = grau20 + " !important";
+        trTotal.style.color = "#000";
+    }
 
-    // Multi-Page Rendering Logik
-    const canvas = await html2canvas(area, { scale: 2, useCORS: true });
+    // PDF Erstellung
+    const canvas = await html2canvas(area, { 
+        scale: 2, 
+        logging: false, 
+        useCORS: true,
+        backgroundColor: "#ffffff" 
+    });
+    
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
     const imgWidth = 210;
@@ -376,11 +386,9 @@ async function generatePDF() {
     let heightLeft = imgHeight;
     let position = 0;
 
-    // Erste Seite
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
-    // Folgeseiten falls nötig
     while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -388,8 +396,8 @@ async function generatePDF() {
         heightLeft -= pageHeight;
     }
 
-    pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
-    area.innerHTML = ""; // Arbeitsbereich leeren
+    pdf.save(`Stundennachweis_Frank_Berndt_${mj.replace(' ','_')}.pdf`);
+    area.innerHTML = "";
 }
 
     // Hilfsfunktionen
