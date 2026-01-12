@@ -267,44 +267,111 @@
         link.click();
     }
 
-    async function generatePDF() {
-        renderReport();
-        const mj = getMonatJahr();
-        const area = document.getElementById('pdf-area');
-        area.innerHTML = `
-            <div style="padding: 15mm; background: #fff; color: #000;">
-                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-                    <h1 style="margin: 0;">Stundennachweis Busbetrieb Elkmann</h1>
-                    <h2>${mj}</h2>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <div><strong>Fahrer:</strong> Frank Berndt<br>Sellen 22, 48565 Steinfurt</div>
-                    <div style="text-align: right;"><strong>Erstellt am:</strong> ${new Date().toLocaleDateString('de-DE')}</div>
-                </div>
-                <div id="pdf-inject-list"></div>
-                <div style="margin-top: 20px; border: 1px solid #000; padding: 10px;">
-                    <h3>Zusammenfassung</h3>
-                    <div id="pdf-inject-sum"></div>
-                </div>
-                <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-                    <div style="border-top: 1px solid #000; width: 60mm; text-align: center;">Unterschrift Fahrer</div>
-                    <div style="border-top: 1px solid #000; width: 60mm; text-align: center;">Bestätigung Betrieb</div>
-                </div>
-            </div>`;
-        
-        const listClone = document.getElementById('report-list').cloneNode(true);
-        listClone.querySelectorAll('td:last-child, th:last-child').forEach(e => e.remove());
-        area.querySelector('#pdf-inject-list').appendChild(listClone);
-        area.querySelector('#pdf-inject-sum').innerHTML = getSummaryHTML();
-        area.querySelectorAll('*').forEach(e => { e.style.color = "#000"; e.style.borderColor = "#ddd"; });
+async function generatePDF() {
+    renderReport();
+    const mj = getMonatJahr();
+    const area = document.getElementById('pdf-area');
+    
+    // Layout für PDF (Lichtgrau statt Schwarz)
+    area.innerHTML = `
+        <div style="padding: 15mm; font-family: Arial, sans-serif; color: #000; background: #fff; width: 180mm;">
+            
+            <div style="text-align: center; background-color: #e6e6e6; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 18pt; color: #000;">Stundennachweis Busbetrieb Elkmann</h1>
+                <h2 style="margin: 5px 0; font-size: 14pt; color: #333;">${mj}</h2>
+            </div>
 
-        const canvas = await html2canvas(area, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-        pdf.addImage(imgData, 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
-        pdf.save(`Stundennachweis_${mj.replace(' ','_')}.pdf`);
-        area.innerHTML = "";
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt; padding: 0 5px;">
+                <div>
+                    <strong>Fahrer:</strong><br>
+                    Frank Berndt<br>
+                    Sellen 22 | 48565 Steinfurt
+                </div>
+                <div style="text-align: right;">
+                    <strong>Erstellt am:</strong><br>
+                    ${new Date().toLocaleDateString('de-DE')}
+                </div>
+            </div>
+
+            <div id="pdf-content-inject"></div>
+
+            <div style="margin-top: 30px; border: 1px solid #ddd; page-break-inside: avoid;">
+                <h3 style="margin: 0; background-color: #e6e6e6; padding: 10px; font-size: 12pt; border-bottom: 1px solid #ddd;">Gesamt-Zusammenfassung</h3>
+                <div id="pdf-summary-inject" style="padding: 10px;"></div>
+            </div>
+
+            <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
+                    Unterschrift Frank Berndt
+                </div>
+                <div style="border-top: 1px solid #000; width: 60mm; text-align: center; font-size: 9pt; padding-top: 5px;">
+                    Bestätigung Betrieb (Stempel)
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Berichtsinhalt klonen und für PDF aufbereiten
+    const reportContent = document.getElementById('report-list').cloneNode(true);
+    
+    // Spalte für Bearbeiten/Löschen entfernen
+    reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
+
+    // Styles für PDF-Tabellen anpassen (Seitentrennung verhindern & Grautöne)
+    reportContent.querySelectorAll('.week-block').forEach(block => {
+        block.style.pageBreakInside = "avoid"; // Verhindert das Brechen einer Woche auf zwei Seiten
+        block.style.marginBottom = "20px";
+        block.style.border = "1px solid #ddd";
+        
+        const title = block.querySelector('.week-title');
+        if(title) {
+            title.style.backgroundColor = "#f2f2f2"; // Ganz helles Grau für Wochen-Header
+            title.style.color = "#000";
+        }
+    });
+
+    reportContent.querySelectorAll('table').forEach(table => {
+        table.style.width = "100%";
+        table.style.borderCollapse = "collapse";
+        table.querySelectorAll('th, td').forEach(cell => {
+            cell.style.border = "1px solid #ddd";
+            cell.style.color = "#000";
+            cell.style.padding = "6px";
+        });
+    });
+
+    area.querySelector('#pdf-content-inject').appendChild(reportContent);
+    area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
+    
+    // Farben in der Zusammenfassungs-Tabelle korrigieren
+    const sumTable = area.querySelector('#pdf-summary-inject table');
+    if(sumTable) {
+        sumTable.style.width = "100%";
+        sumTable.querySelectorAll('th, td').forEach(c => {
+            c.style.border = "1px solid #ddd";
+            c.style.color = "#000";
+        });
+        sumTable.querySelector('.total-row').style.backgroundColor = "#e6e6e6"; // 20% Schwarz für die Summe
     }
+
+    // PDF mit html2canvas generieren
+    const canvas = await html2canvas(area, { 
+        scale: 2, 
+        backgroundColor: "#fff",
+        useCORS: true 
+    });
+    
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+    const pdfWidth = 210;
+    const imgWidth = pdfWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
+    
+    area.innerHTML = ""; // Temporären Arbeitsbereich wieder leeren
+}
 
     // Hilfsfunktionen
     function showTab(id) {
