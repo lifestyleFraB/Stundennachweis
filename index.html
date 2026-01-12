@@ -47,29 +47,36 @@
         #pdf-export-container { position: absolute; left: -9999px; }
         .pdf-area { width: 210mm; padding: 20mm; background: white; color: black; font-family: Arial, sans-serif; }
 @media print {
-    /* 1. Alles ausblenden */
+    /* Alles ausblenden */
     body * {
         visibility: hidden;
         background: white !important;
         color: black !important;
     }
 
-    /* 2. Nur den Berichtsbereich einblenden */
+    /* Nur den Berichtsbereich einblenden */
     #tab-report, #tab-report * {
         visibility: visible;
     }
 
-    /* 3. Störende Elemente innerhalb des Berichts entfernen */
+    /* Den speziellen Druck-Header im Druck anzeigen */
+    .print-header {
+        display: block !important;
+        position: relative;
+    }
+
+    /* Störende Elemente entfernen */
     #tab-report button, 
     #tab-report input,
     .nav, 
     .app-header,
-    td:last-child, /* Entfernt die Spalte mit den Icons (Bearbeiten/Löschen) */
+    #report-dynamic-title, /* Wir nutzen jetzt den schöneren print-header oben */
+    td:last-child, 
     th:last-child {
         display: none !important;
     }
 
-    /* 4. Layout für Papier optimieren */
+    /* Layout für Papier optimieren */
     #tab-report {
         position: absolute;
         left: 0;
@@ -77,13 +84,12 @@
         width: 100%;
         margin: 0;
         padding: 0;
-        display: block !important; /* Sicherstellen, dass der Tab sichtbar ist */
     }
 
     .week-block {
-        border: 1px solid #eee;
+        border: 1px solid #ddd;
         margin-bottom: 20px;
-        page-break-inside: avoid; /* Verhindert das Zerreißen von Tabellen */
+        page-break-inside: avoid;
     }
 
     .summary-table {
@@ -94,13 +100,11 @@
     .summary-table th, .summary-table td {
         border: 1px solid #ddd !important;
         color: black !important;
+        padding: 8px;
     }
 
-    /* Titel für den Druck schöner machen */
-    #report-dynamic-title {
-        font-size: 18pt;
-        margin-bottom: 20px;
-        text-align: center;
+    .total-row {
+        background-color: #f0f0f0 !important;
     }
 }
 		
@@ -160,7 +164,21 @@
     </div>
 
     <div id="tab-report" class="container">
-        <div id="report-list"></div>
+    <div class="print-header" style="display: none;">
+        <h1 style="text-align: center; margin-bottom: 5px;">Stundennachweis Busbetrieb Elkmann</h1>
+        <h2 id="print-month-year" style="text-align: center; margin-top: 0; margin-bottom: 20px;"></h2>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+            <div>
+                <strong>Fahrer:</strong> Frank Berndt<br>
+                Sellen 22 | 48565 Steinfurt
+            </div>
+            <div style="text-align: right;">
+                <strong>Erstellt am:</strong> <span id="print-current-date"></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-list"></div>
         <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
             <h4 id="report-dynamic-title">Gesamt-Abrechnung</h4>
             <div id="report-final-table"></div>
@@ -294,8 +312,13 @@
     }
 
     function renderReport() {
-        const mj = getMonatJahr();
-        document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann`;
+    const mj = getMonatJahr();
+    
+    // NEU: Daten für den System-Druck Header füllen
+    document.getElementById('print-month-year').innerText = mj;
+    document.getElementById('print-current-date').innerText = new Date().toLocaleDateString('de-DE');
+
+    document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann;
         const weeks = {};
         db.entries.forEach(e => {
             const key = `${e.year}-KW${e.kw}-${e.tour}`;
