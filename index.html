@@ -12,7 +12,15 @@
             --text: #ffffff; --success: #43b581; --danger: #f04747; --text-dim: #949cf7; --edit: #f39c12;
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        
+      <body>
+    <h2 id="main-title" style="text-align: center; color: var(--accent); margin-top: 10px;">
+        Stundennachweis Busbetrieb Elkmann - <span id="current-month-year"></span>
+    </h2>
+
+    <div class="app-header">
+        <strong>Frank Berndt</strong> | Sellen 22 | 48565 Steinfurt
+    </div>
+  
         .app-header { width: 100%; max-width: 850px; padding: 10px; margin-bottom: 10px; border-left: 3px solid var(--accent); font-size: 0.9rem; color: var(--text-dim); }
         .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; width: 100%; max-width: 850px; }
         .nav-btn { flex: 1; min-width: 80px; padding: 12px; cursor: pointer; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--text); font-weight: bold; font-size: 0.75rem; }
@@ -243,11 +251,14 @@
     }
 
     function init() {
-        updateTourDropdowns();
-        renderDashboard();
-        updateTimerUI();
-        document.getElementById('in-date').valueAsDate = new Date();
-    }
+    // Diese Zeile füllt die neue Überschrift automatisch aus
+    document.getElementById('current-month-year').innerText = getMonatJahr();
+    
+    updateTourDropdowns();
+    renderDashboard();
+    updateTimerUI();
+    document.getElementById('in-date').valueAsDate = new Date();
+}
 
     function updateTourDropdowns() {
         const options = db.tours.map(t=>`<option value="${t}">${t}</option>`).join('');
