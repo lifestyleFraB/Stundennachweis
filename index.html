@@ -298,8 +298,9 @@ async function generatePDF() {
     const mj = getMonatJahr();
     const area = document.getElementById('pdf-area');
     
-    // Definition für 20% Schwarz (Lichtgrau)
-    const grau20 = "#e0e0e0";
+    // Definitionen
+    const grau20 = "#e0e0e0"; // Das gewünschte Lichtgrau
+    const weiss = "#ffffff";
 
     area.innerHTML = `
         <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background-color: #ffffff; width: 190mm;">
@@ -338,49 +339,48 @@ async function generatePDF() {
         </div>
     `;
 
-    // Berichtsinhalt klonen
     const reportContent = document.getElementById('report-list').cloneNode(true);
-    
-    // Bearbeiten-Spalte entfernen
     reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
 
-    // ALLE Tour-Balken und Wochen-Header auf Grau umstellen
-    // Wir suchen nach den Klassen, die du im HTML für die Touren nutzt (meist .week-title oder .tour-header)
-    const tourBalken = reportContent.querySelectorAll('.week-title, .tour-header, [style*="background-color: rgb(30, 41, 59)"]');
+    // 1. Alle ehemals blauen Texte weiß machen
+    // Wir suchen alle Elemente im Report, die eine Farbe gesetzt haben
+    reportContent.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        // Prüfen ob die Farbe blau-ähnlich ist oder ob es ein Header ist
+        if (style.color.includes('114') || el.classList.contains('week-title') || el.tagName === 'TH') {
+            el.style.setProperty('color', weiss, 'important');
+        }
+    });
+
+    // 2. Tour-Balken (Header) auf Grau setzen
+    const tourBalken = reportContent.querySelectorAll('.week-title, .tour-header');
     tourBalken.forEach(balken => {
         balken.style.setProperty('background-color', grau20, 'important');
-        balken.style.setProperty('color', '#000', 'important');
+        balken.style.setProperty('color', '#000', 'important'); // Tour-Titel lieber schwarz auf grau für Lesbarkeit
         balken.style.border = "1px solid #ccc";
     });
 
     area.querySelector('#pdf-content-inject').appendChild(reportContent);
     area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
 
-    // Tabellen-Feinschliff
+    // 3. Tabellen-Feinschliff & Blaue Schrift in Tabellen-Köpfen korrigieren
     area.querySelectorAll('table').forEach(table => {
         table.style.width = "100%";
         table.style.borderCollapse = "collapse";
-        table.style.marginBottom = "15px";
         
         table.querySelectorAll('th').forEach(th => {
             th.style.backgroundColor = grau20;
-            th.style.color = "#000";
+            th.style.color = "#000"; // Kopfzeilen schwarz auf grau
             th.style.border = "1px solid #ccc";
         });
         table.querySelectorAll('td').forEach(td => {
             td.style.border = "1px solid #ddd";
-            td.style.color = "#000";
+            // Falls in den Zellen noch blau vorkommt -> Schwarz oder Weiß
+            if (td.style.color.includes('114')) td.style.color = "#000";
         });
     });
 
-    // Summenzeile der Zusammenfassung
-    const sumTotalRow = area.querySelector('.total-row');
-    if(sumTotalRow) {
-        sumTotalRow.style.setProperty('background-color', grau20, 'important');
-        sumTotalRow.style.color = "#000";
-    }
-
-    // PDF Erstellung über mehrere Seiten
+    // PDF-Generierung
     const canvas = await html2canvas(area, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
