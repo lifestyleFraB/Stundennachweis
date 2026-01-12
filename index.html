@@ -311,14 +311,18 @@
         document.getElementById('tour-list').innerHTML = db.tours.map(t => `<div>• ${t} ${t!=='Standard-Tour'?`<span onclick="deleteTour('${t}')" style="color:var(--danger);cursor:pointer;margin-left:10px;">[x]</span>`:''}</div>`).join('');
     }
 
-    function renderReport() {
+function renderReport() {
     const mj = getMonatJahr();
     
     // NEU: Daten für den System-Druck Header füllen
     document.getElementById('print-month-year').innerText = mj;
     document.getElementById('print-current-date').innerText = new Date().toLocaleDateString('de-DE');
 
-    document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann;
+    document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann`;
+    
+    // ... restlicher Code der Funktion bleibt gleich ...
+}
+	
         const weeks = {};
         db.entries.forEach(e => {
             const key = `${e.year}-KW${e.kw}-${e.tour}`;
