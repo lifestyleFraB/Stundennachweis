@@ -35,7 +35,6 @@
         .report-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .report-table th, .report-table td { padding: 10px; text-align: left; border-bottom: 1px solid #222; }
 
-        /* Sektionen im Dashboard */
         .dash-section { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; }
         .dash-section h4 { margin-top: 0; color: var(--accent); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -46,9 +45,7 @@
 
 <body>
 
-    <h2 style="text-align: center; color: var(--accent); margin-top: 10px;">
-        WorkTrack Elkmann
-    </h2>
+    <h2 style="text-align: center; color: var(--accent); margin-top: 10px;">WorkTrack Elkmann</h2>
 
     <div class="app-header">
         <strong>Frank Berndt</strong> | Sellen 22 | 48565 Steinfurt
@@ -62,7 +59,7 @@
 
     <div id="tab-dash" class="container active">
         <div class="timer-card">
-            <h4 id="timer-status" style="color:var(--text-dim)">Tour-Stoppuhr</h4>
+            <h4 style="color:var(--text-dim)">Tour-Stoppuhr</h4>
             <div class="timer-display" id="stopwatch">00:00:00</div>
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button id="btn-start" class="btn-primary" style="background:var(--success); width:120px;" onclick="startTimer()">Start</button>
@@ -78,7 +75,7 @@
             <label style="font-size:0.75rem; color:var(--text-dim)">Stundenlohn (€)</label>
             <div style="display:flex; gap:10px; margin-bottom:15px;">
                 <input type="number" id="cfg-wage" step="0.01" style="margin-bottom:0;">
-                <button onclick="saveWage()" style="background:var(--accent); border:none; padding:0 20px; border-radius:8px; color:white; font-weight:bold;">Lohn Sichern</button>
+                <button onclick="saveWage()" style="background:var(--accent); border:none; padding:0 20px; border-radius:8px; color:white; font-weight:bold;">Sichern</button>
             </div>
             <div style="display:flex; gap:10px;">
                 <input type="text" id="new-tour-name" placeholder="Neue Tour..." style="margin-bottom:0;">
@@ -89,7 +86,6 @@
 
         <div class="dash-section" style="border: 1px solid var(--edit);">
             <h4>Datensicherung (Backup)</h4>
-            <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px;">Speichere alle deine Einträge in einer Datei oder lade sie wieder hoch.</p>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <button onclick="backupData()" style="background: #444; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold;">💾 Daten Sichern</button>
                 <button onclick="document.getElementById('import-file').click()" style="background: #444; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold;">📂 Wiederherstellen</button>
@@ -113,7 +109,7 @@
     <div id="tab-report" class="container">
         <div id="report-list"></div>
         <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
-            <h4 id="report-dynamic-title">Gesamt-Abrechnung</h4>
+            <h4>Abrechnung (Aktueller Lohn)</h4>
             <div id="report-final-table"></div>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
@@ -125,7 +121,7 @@
     <div id="pdf-export-container"></div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('frank_v26_final')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
+    let db = JSON.parse(localStorage.getItem('frank_v27_final')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
     let timerInterval;
     let editId = null;
 
@@ -137,21 +133,20 @@
         document.getElementById('in-date').valueAsDate = new Date();
     }
 
-    function saveDB() { localStorage.setItem('frank_v26_final', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('frank_v27_final', JSON.stringify(db)); }
 
     function saveWage() {
         db.wage = parseFloat(document.getElementById('cfg-wage').value.replace(',','.')) || 14.00;
-        saveDB(); renderDashboard(); alert("Lohn wurde auf " + db.wage.toFixed(2) + " € aktualisiert.");
+        saveDB(); renderDashboard(); alert("Stundenlohn aktualisiert.");
     }
 
-    // BACKUP FUNKTIONEN
     function backupData() {
         const dataStr = JSON.stringify(db, null, 2);
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `WorkTrack_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        link.download = `Backup_WorkTrack_${new Date().toISOString().slice(0,10)}.json`;
         link.click();
     }
 
@@ -162,18 +157,12 @@
         reader.onload = function(e) {
             try {
                 const imported = JSON.parse(e.target.result);
-                if (imported.entries && imported.tours) {
-                    db = imported;
-                    saveDB();
-                    init();
-                    alert("Daten erfolgreich wiederhergestellt!");
-                } else { throw new Error(); }
-            } catch (err) { alert("Fehler: Ungültige Backup-Datei."); }
+                if (imported.entries) { db = imported; saveDB(); init(); alert("Daten wiederhergestellt!"); }
+            } catch (err) { alert("Fehler beim Lesen der Datei."); }
         };
         reader.readAsText(file);
     }
 
-    // Timer Logik
     function startTimer() {
         db.activeTimer = { start: Date.now(), tour: document.getElementById('timer-tour-sel').value };
         saveDB(); updateTimerUI();
@@ -240,7 +229,7 @@
                     <span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:12px;cursor:pointer;">✎</span>
                     <span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span>
                 </td></tr>`).join('')}</tbody></table>
-                <div style="padding:10px; font-size:0.85rem; background:rgba(255,255,255,0.05); border-top:1px solid #333;">Summe: ${weeks[k].h.toFixed(2)}h = <b>${(weeks[k].h * db.wage).toFixed(2)} €</b></div></div>`;
+                <div style="padding:10px; font-size:0.85rem; background:rgba(255,255,255,0.05);">Summe: ${weeks[k].h.toFixed(2)}h = <b>${(weeks[k].h * db.wage).toFixed(2)} €</b></div></div>`;
         }
         document.getElementById('report-list').innerHTML = html || "Keine Einträge.";
         document.getElementById('report-final-table').innerHTML = getSummaryHTML();
@@ -252,7 +241,7 @@
             if(!stats[e.tour]) stats[e.tour] = { h: 0 };
             stats[e.tour].h += e.total; totalH += e.total;
         });
-        const style = isPdf ? 'style="width:100%; border-collapse:collapse; color:black;"' : 'class="summary-table"';
+        const style = isPdf ? 'style="width:100%; border-collapse:collapse; color:black; font-size:10pt;"' : 'class="summary-table"';
         const tdStyle = isPdf ? 'style="border:1px solid #ccc; padding:8px;"' : '';
         let html = `<table ${style}><thead><tr style="background:${isPdf?'#e0e0e0':'#2c2f48'}"><th ${tdStyle}>Tour</th><th ${tdStyle}>Std.</th><th ${tdStyle}>Betrag</th></tr></thead><tbody>`;
         for(let t in stats) { html += `<tr><td ${tdStyle}>${t}</td><td ${tdStyle}>${stats[t].h.toFixed(2)} h</td><td ${tdStyle}>${(stats[t].h * db.wage).toFixed(2)} €</td></tr>`; }
@@ -271,17 +260,20 @@
         page.innerHTML = `
             <div style="text-align:center; background:#e0e0e0; padding:15px; border:1px solid #ccc; margin-bottom:20px;">
                 <h1 style="margin:0; font-size:18pt;">Stundennachweis Busbetrieb Elkmann</h1>
-                <h2 style="margin:5px 0; font-size:14pt;">Abrechnung: ${mj}</h2>
+                <h2 style="margin:5px 0; font-size:14pt;">Abrechnungsmonat: ${mj}</h2>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:25px;">
                 <div><strong>Fahrer:</strong><br>Frank Berndt<br>Sellen 22, 48565 Steinfurt</div>
                 <div style="text-align:right;"><strong>Status:</strong> ${db.wage.toFixed(2)} €/h<br>${new Date().toLocaleDateString('de-DE')}</div>
             </div>
             <div id="pdf-content"></div>
-            <div style="margin-top:20px;">${getSummaryHTML(true)}</div>
+            <div style="margin-top:30px;">
+                <h3 style="border-bottom:1px solid #000; padding-bottom:5px; margin-bottom:10px; font-size:12pt; text-transform:uppercase;">GESAMT-AUFSTELLUNG</h3>
+                ${getSummaryHTML(true)}
+            </div>
             <div style="position:absolute; bottom:20mm; width:180mm; display:flex; justify-content:space-between;">
-                <div style="border-top:1px solid #000; width:60mm; text-align:center; padding-top:5px;">Unterschrift Berndt</div>
-                <div style="border-top:1px solid #000; width:60mm; text-align:center; padding-top:5px;">Bestätigung Elkmann</div>
+                <div style="border-top:1px solid #000; width:60mm; text-align:center; padding-top:5px; font-size:9pt;">Unterschrift Berndt</div>
+                <div style="border-top:1px solid #000; width:60mm; text-align:center; padding-top:5px; font-size:9pt;">Bestätigung Betrieb</div>
             </div>`;
         
         const listClone = document.getElementById('report-list').cloneNode(true);
@@ -345,7 +337,13 @@
     }
     function deleteEntry(id) { if(confirm("Löschen?")) { db.entries=db.entries.filter(x=>x.id!==id); saveDB(); renderReport(); } }
     function resetForm() { editId = null; document.getElementById('btn-cancel').style.display="none"; document.getElementById('form-title').innerText = "Tourzeit erfassen"; }
-
+    function exportCSV() {
+        let csv = "Datum;Tour;Std;Betrag\n";
+        db.entries.forEach(e => csv += `${e.date};${e.tour};${e.total.toFixed(2)};${(e.total*db.wage).toFixed(2)}\n`);
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob(["\ufeff"+csv], {type:'text/csv'}));
+        link.download = "Export.csv"; link.click();
+    }
     init();
 </script>
 </body>
