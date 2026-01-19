@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkTrack Pro - Frank Berndt</title>
+    <title>Stundenabrechnung Busbetrieb Elkmann - Frank Berndt</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
@@ -107,7 +107,7 @@
     </div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('frank_v30')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
+    let db = JSON.parse(localStorage.getItem('frank_v32')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
     let timerInterval;
     let editId = null;
 
@@ -119,7 +119,7 @@
         document.getElementById('in-date').valueAsDate = new Date();
     }
 
-    function saveDB() { localStorage.setItem('frank_v30', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('frank_v32', JSON.stringify(db)); }
 
     function backupData() {
         const dataStr = JSON.stringify(db, null, 2);
@@ -203,9 +203,14 @@
 
         for (let k in weeks) {
             checkPage(40);
-            pdf.setFillColor(240, 240, 240); pdf.rect(15, y, 180, 8, 'F');
-            pdf.setFont("helvetica", "bold"); pdf.text(k, 18, y + 5);
-            y += 10;
+            // Grauer Balken Wochenkopf
+            pdf.setFillColor(240, 240, 240); 
+            pdf.rect(15, y, 180, 8, 'F');
+            pdf.setFont("helvetica", "bold"); 
+            pdf.text(k, 18, y + 5);
+            
+            y += 14; 
+
             pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
             weeks[k].items.forEach(i => {
                 checkPage(10);
@@ -213,27 +218,38 @@
                 pdf.text(`Vorm: ${i.am_s}-${i.am_e}`, 50, y);
                 pdf.text(`Nachm: ${i.pm_s}-${i.pm_e}`, 95, y);
                 pdf.text(`${i.total.toFixed(2)} h`, 175, y);
-                y += 7;
+                y += 8;
             });
-            // NEUE ZEILE: WOCHENSUMME & VERDIENST
+            
+            // NEU: HELLBLAUE WOCHENSUMMENZEILE
+            checkPage(15);
+            pdf.setFillColor(230, 240, 255); // Sehr helles Blau
+            pdf.rect(130, y - 5, 65, 8, 'F');
+            pdf.setDrawColor(0, 50, 150); // Dunkelblaue Linie
+            pdf.setLineWidth(0.3);
+            pdf.line(130, y - 5, 195, y - 5);
+            
             pdf.setFont("helvetica", "bold");
-            pdf.line(130, y-2, 195, y-2);
-            pdf.text(`Woche: ${weeks[k].h.toFixed(2)} h   |   ${(weeks[k].h * db.wage).toFixed(2)} €`, 195, y + 4, {align: "right"});
-            y += 15;
+            pdf.setTextColor(0, 50, 100);
+            pdf.text(`Woche: ${weeks[k].h.toFixed(2)} h | ${(weeks[k].h * db.wage).toFixed(2)} €`, 193, y, {align: "right"});
+            
+            pdf.setTextColor(0, 0, 0);
+            y += 18;
         }
 
         // Gesamtaufstellung
         checkPage(60); y += 5;
-        pdf.setFontSize(12); pdf.text("GESAMT-AUFSTELLUNG", 15, y); y += 8;
+        pdf.setFontSize(12); pdf.setFont("helvetica", "bold"); pdf.text("GESAMT-AUFSTELLUNG", 15, y); y += 10;
         const stats = {}; let totalH = 0;
         db.entries.forEach(e => { if(!stats[e.tour]) stats[e.tour] = { h: 0 }; stats[e.tour].h += e.total; totalH += e.total; });
-        pdf.setFontSize(10); pdf.line(15, y, 195, y); y += 7;
+        pdf.setFontSize(10); pdf.line(15, y, 195, y); y += 8;
         for(let t in stats) {
             checkPage(10);
+            pdf.setFont("helvetica", "normal");
             pdf.text(t, 18, y); pdf.text(`${stats[t].h.toFixed(2)} h`, 110, y); pdf.text(`${(stats[t].h * db.wage).toFixed(2)} €`, 160, y);
-            y += 7;
+            y += 8;
         }
-        y += 3; pdf.setFont("helvetica", "bold"); pdf.line(15, y, 195, y); y += 7;
+        y += 4; pdf.setFont("helvetica", "bold"); pdf.line(15, y, 195, y); y += 8;
         pdf.text("GESAMTSUMME:", 18, y); pdf.text(`${totalH.toFixed(2)} h`, 110, y); pdf.text(`${(totalH * db.wage).toFixed(2)} €`, 160, y);
 
         // Unterschriften
