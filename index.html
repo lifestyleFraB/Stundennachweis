@@ -23,9 +23,6 @@
         .timer-card { background: linear-gradient(135deg, #2c2f48 0%, #1a1c2e 100%); padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px; border: 1px solid var(--accent); }
         .timer-display { font-size: 2.5rem; font-weight: bold; font-family: monospace; margin: 10px 0; color: var(--success); }
         
-        .summary-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; }
-        .summary-table th, .summary-table td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-
         input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2c2f48; color: white; margin-bottom: 15px; box-sizing: border-box; }
         .btn-primary { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
         
@@ -103,9 +100,6 @@
 
     <div id="tab-report" class="container">
         <div id="report-list"></div>
-        <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
-            <div id="report-final-table"></div>
-        </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
             <button onclick="generatePDF()" style="background:var(--danger); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold;">PDF Beleg (A4)</button>
             <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold;">Excel</button>
@@ -113,7 +107,7 @@
     </div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('frank_v29')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
+    let db = JSON.parse(localStorage.getItem('frank_v30')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
     let timerInterval;
     let editId = null;
 
@@ -125,9 +119,8 @@
         document.getElementById('in-date').valueAsDate = new Date();
     }
 
-    function saveDB() { localStorage.setItem('frank_v29', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('frank_v30', JSON.stringify(db)); }
 
-    // Backup & Restore
     function backupData() {
         const dataStr = JSON.stringify(db, null, 2);
         const blob = new Blob([dataStr], { type: 'application/json' });
@@ -151,12 +144,11 @@
         reader.readAsText(file);
     }
 
-    // Timer & Dashboard
     function saveWage() { db.wage = parseFloat(document.getElementById('cfg-wage').value.replace(',','.')) || 14.00; saveDB(); renderDashboard(); alert("Gesichert."); }
     function startTimer() { db.activeTimer = { start: Date.now(), tour: document.getElementById('timer-tour-sel').value }; saveDB(); updateTimerUI(); }
     function stopTimer() {
-        const startTime = db.activeTimer.start; const tour = db.activeTimer.tour;
-        showTab('tab-entry'); document.getElementById('sel-tour').value = tour;
+        const startTime = db.activeTimer.start;
+        showTab('tab-entry'); document.getElementById('sel-tour').value = db.activeTimer.tour;
         document.getElementById('am-s').value = new Date(startTime).toTimeString().slice(0,5);
         document.getElementById('am-e').value = new Date().toTimeString().slice(0,5);
         db.activeTimer = null; saveDB(); updateTimerUI();
@@ -166,9 +158,7 @@
             document.getElementById('btn-start').style.display = "none"; document.getElementById('btn-stop').style.display = "inline-block";
             if(!timerInterval) timerInterval = setInterval(() => {
                 const diff = Date.now() - db.activeTimer.start;
-                const h = Math.floor(diff/3600000).toString().padStart(2,'0');
-                const m = Math.floor((diff%3600000)/60000).toString().padStart(2,'0');
-                const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+                const h = Math.floor(diff/3600000).toString().padStart(2,'0'), m = Math.floor((diff%3600000)/60000).toString().padStart(2,'0'), s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
                 document.getElementById('stopwatch').innerText = `${h}:${m}:${s}`;
             }, 1000);
         } else { clearInterval(timerInterval); timerInterval = null; document.getElementById('btn-start').style.display = "inline-block"; document.getElementById('btn-stop').style.display = "none"; document.getElementById('stopwatch').innerText = "00:00:00"; }
@@ -177,7 +167,7 @@
     function renderDashboard() {
         const now = new Date();
         const monthH = db.entries.filter(e => new Date(e.date).getMonth() === now.getMonth()).reduce((s,e) => s + e.total, 0);
-        document.getElementById('dash-summary-content').innerHTML = `<div style="background:var(--accent); padding:15px; border-radius:12px; text-align:center; margin-bottom:15px;"><small>Monatssumme</small><div style="font-size:1.8rem; font-weight:bold;">${monthH.toFixed(2)} h</div><div>= ${(monthH * db.wage).toFixed(2)} €</div></div>`;
+        document.getElementById('dash-summary-content').innerHTML = `<div style="background:var(--accent); padding:15px; border-radius:12px; text-align:center; margin-bottom:15px;"><small>Aktueller Monat</small><div style="font-size:1.8rem; font-weight:bold;">${monthH.toFixed(2)} h</div><div>= ${(monthH * db.wage).toFixed(2)} €</div></div>`;
         document.getElementById('tour-list').innerHTML = db.tours.map(t => `<div style="display:flex;justify-content:space-between;padding:5px;border-bottom:1px solid #333;">${t} <span onclick="deleteTour('${t}')" style="color:var(--danger);cursor:pointer;">✕</span></div>`).join('');
     }
 
@@ -185,115 +175,75 @@
         let html = ''; const weeks = {};
         db.entries.forEach(e => { const key = `KW ${e.kw} | ${e.tour}`; if(!weeks[key]) weeks[key] = { items: [], h: 0 }; weeks[key].items.push(e); weeks[key].h += e.total; });
         for(let k in weeks) {
-            html += `<div class="week-block"><div class="week-title">${k}</div><table class="report-table"><thead><tr><th>Datum</th><th>Vorm.</th><th>Nachm.</th><th>Std.</th><th></th></tr></thead><tbody>${weeks[k].items.map(i => `<tr><td>${new Date(i.date).toLocaleDateString('de-DE')}</td><td>${i.am_s}-${i.am_e}</td><td>${i.pm_s}-${i.pm_e}</td><td>${i.total.toFixed(2)}</td><td style="text-align:right"><span onclick="copyEntry(${i.id})" style="color:var(--accent);margin-right:10px;cursor:pointer;">⧉</span><span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:10px;cursor:pointer;">✎</span><span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span></td></tr>`).join('')}</tbody></table><div style="padding:10px; font-size:0.8rem;">Summe: ${weeks[k].h.toFixed(2)}h</div></div>`;
+            html += `<div class="week-block"><div class="week-title">${k}</div><table class="report-table"><thead><tr><th>Datum</th><th>Vorm.</th><th>Nachm.</th><th>Std.</th><th></th></tr></thead><tbody>${weeks[k].items.map(i => `<tr><td>${new Date(i.date).toLocaleDateString('de-DE')}</td><td>${i.am_s}-${i.am_e}</td><td>${i.pm_s}-${i.pm_e}</td><td>${i.total.toFixed(2)}</td><td style="text-align:right"><span onclick="copyEntry(${i.id})" style="color:var(--accent);margin-right:10px;cursor:pointer;">⧉</span><span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:10px;cursor:pointer;">✎</span><span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span></td></tr>`).join('')}</tbody></table><div style="padding:10px; font-size:0.8rem; font-weight:bold;">Summe Woche: ${weeks[k].h.toFixed(2)}h (= ${(weeks[k].h * db.wage).toFixed(2)} €)</div></div>`;
         }
         document.getElementById('report-list').innerHTML = html || "Keine Einträge.";
-        document.getElementById('report-final-table').innerHTML = getSummaryTableHTML(false);
     }
 
-    function getSummaryTableHTML(isPdf = false) {
-        const stats = {}; let totalH = 0;
-        db.entries.forEach(e => { if(!stats[e.tour]) stats[e.tour] = { h: 0 }; stats[e.tour].h += e.total; totalH += e.total; });
-        let html = `<table style="width:100%; border-collapse:collapse; color:${isPdf?'black':'white'};"><thead><tr style="background:#e0e0e0; color:black;"><th style="padding:8px; border:1px solid #ccc; text-align:left;">Tour</th><th style="padding:8px; border:1px solid #ccc;">Stunden</th><th style="padding:8px; border:1px solid #ccc;">Betrag</th></tr></thead><tbody>`;
-        for(let t in stats) { html += `<tr><td style="padding:8px; border:1px solid #ccc;">${t}</td><td style="padding:8px; border:1px solid #ccc;">${stats[t].h.toFixed(2)} h</td><td style="padding:8px; border:1px solid #ccc;">${(stats[t].h * db.wage).toFixed(2)} €</td></tr>`; }
-        html += `<tr style="font-weight:bold; background:#f2f2f2; color:black;"><td style="padding:8px; border:1px solid #ccc;">GESAMT</td><td style="padding:8px; border:1px solid #ccc;">${totalH.toFixed(2)} h</td><td style="padding:8px; border:1px solid #ccc;">${(totalH * db.wage).toFixed(2)} €</td></tr></tbody></table>`;
-        return html;
-    }
-
-    // PDF Logik - Seitenweise A4 ohne Stauchen
     async function generatePDF() {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
         const mj = monate[new Date().getMonth()] + " " + new Date().getFullYear();
-        
         let y = 20;
 
         const checkPage = (needed) => { if (y + needed > 270) { pdf.addPage(); y = 20; return true; } return false; };
 
         // Header
-        pdf.setFillColor(224, 224, 224);
-        pdf.rect(15, y, 180, 15, 'F');
-        pdf.setFontSize(16); pdf.text("Stundennachweis Busbetrieb Elkmann", 105, y + 10, { align: "center" });
+        pdf.setFillColor(224, 224, 224); pdf.rect(15, y, 180, 15, 'F');
+        pdf.setFontSize(16); pdf.setFont("helvetica", "bold"); pdf.text("Stundennachweis Busbetrieb Elkmann", 105, y + 10, { align: "center" });
         y += 25;
-
-        pdf.setFontSize(10);
+        pdf.setFontSize(10); pdf.setFont("helvetica", "normal");
         pdf.text(`Fahrer: Frank Berndt, Sellen 22, 48565 Steinfurt`, 15, y);
-        pdf.text(`Zeitraum: ${mj}`, 150, y);
+        pdf.text(`Monat: ${mj}`, 160, y);
         y += 15;
 
-        // Einträge gruppiert nach Wochen
         const weeks = {};
         db.entries.forEach(e => { const key = `KW ${e.kw} | ${e.tour}`; if(!weeks[key]) weeks[key] = { items: [], h: 0 }; weeks[key].items.push(e); weeks[key].h += e.total; });
 
         for (let k in weeks) {
             checkPage(40);
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(15, y, 180, 8, 'F');
-            pdf.setFont("helvetica", "bold");
-            pdf.text(k, 18, y + 5);
+            pdf.setFillColor(240, 240, 240); pdf.rect(15, y, 180, 8, 'F');
+            pdf.setFont("helvetica", "bold"); pdf.text(k, 18, y + 5);
             y += 10;
-
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(9);
+            pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
             weeks[k].items.forEach(i => {
                 checkPage(10);
-                const dt = new Date(i.date).toLocaleDateString('de-DE');
-                pdf.text(`${dt}`, 18, y);
+                pdf.text(`${new Date(i.date).toLocaleDateString('de-DE')}`, 18, y);
                 pdf.text(`Vorm: ${i.am_s}-${i.am_e}`, 50, y);
-                pdf.text(`Nachm: ${i.pm_s}-${i.pm_e}`, 90, y);
-                pdf.text(`${i.total.toFixed(2)} h`, 170, y);
+                pdf.text(`Nachm: ${i.pm_s}-${i.pm_e}`, 95, y);
+                pdf.text(`${i.total.toFixed(2)} h`, 175, y);
                 y += 7;
             });
+            // NEUE ZEILE: WOCHENSUMME & VERDIENST
             pdf.setFont("helvetica", "bold");
-            pdf.text(`Summe Woche: ${weeks[k].h.toFixed(2)} h`, 150, y);
-            y += 12;
+            pdf.line(130, y-2, 195, y-2);
+            pdf.text(`Woche: ${weeks[k].h.toFixed(2)} h   |   ${(weeks[k].h * db.wage).toFixed(2)} €`, 195, y + 4, {align: "right"});
+            y += 15;
         }
 
-        // Gesamt-Aufstellung
-        checkPage(60);
-        y += 10;
-        pdf.setFontSize(12);
-        pdf.text("GESAMT-AUFSTELLUNG", 15, y);
-        y += 10;
-        
+        // Gesamtaufstellung
+        checkPage(60); y += 5;
+        pdf.setFontSize(12); pdf.text("GESAMT-AUFSTELLUNG", 15, y); y += 8;
         const stats = {}; let totalH = 0;
         db.entries.forEach(e => { if(!stats[e.tour]) stats[e.tour] = { h: 0 }; stats[e.tour].h += e.total; totalH += e.total; });
-
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Tour", 18, y); pdf.text("Stunden", 100, y); pdf.text("Betrag", 150, y);
-        y += 2;
-        pdf.line(15, y, 195, y);
-        y += 7;
-
-        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10); pdf.line(15, y, 195, y); y += 7;
         for(let t in stats) {
             checkPage(10);
-            pdf.text(t, 18, y);
-            pdf.text(`${stats[t].h.toFixed(2)} h`, 100, y);
-            pdf.text(`${(stats[t].h * db.wage).toFixed(2)} €`, 150, y);
+            pdf.text(t, 18, y); pdf.text(`${stats[t].h.toFixed(2)} h`, 110, y); pdf.text(`${(stats[t].h * db.wage).toFixed(2)} €`, 160, y);
             y += 7;
         }
-        
-        y += 5;
-        pdf.setFont("helvetica", "bold");
-        pdf.text("GESAMTSUMME:", 18, y);
-        pdf.text(`${totalH.toFixed(2)} h`, 100, y);
-        pdf.text(`${(totalH * db.wage).toFixed(2)} €`, 150, y);
+        y += 3; pdf.setFont("helvetica", "bold"); pdf.line(15, y, 195, y); y += 7;
+        pdf.text("GESAMTSUMME:", 18, y); pdf.text(`${totalH.toFixed(2)} h`, 110, y); pdf.text(`${(totalH * db.wage).toFixed(2)} €`, 160, y);
 
         // Unterschriften
-        checkPage(40);
-        y = 270;
-        pdf.line(15, y, 75, y); pdf.line(120, y, 180, y);
-        pdf.setFontSize(8);
-        pdf.text("Unterschrift Frank Berndt", 25, y + 5);
-        pdf.text("Bestätigung Betrieb", 135, y + 5);
+        y = 275; pdf.setFontSize(8); pdf.setFont("helvetica", "normal");
+        pdf.line(15, y, 80, y); pdf.line(120, y, 185, y);
+        pdf.text("Unterschrift Frank Berndt", 15, y + 5); pdf.text("Bestätigung Betrieb", 120, y + 5);
 
-        pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
+        pdf.save(`Abrechnung_Elkmann_${mj.replace(' ','_')}.pdf`);
     }
 
-    // Hilfsfunktionen
     function showTab(id) { document.querySelectorAll('.container').forEach(c => c.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); document.getElementById('nav-' + id.split('-')[1]).classList.add('active'); if(id === 'tab-report') renderReport(); if(id === 'tab-dash') renderDashboard(); }
     function updateTourDropdowns() { const options = db.tours.map(t=>`<option value="${t}">${t}</option>`).join(''); document.getElementById('sel-tour').innerHTML = options; document.getElementById('timer-tour-sel').innerHTML = options; }
     function addTour() { const n = document.getElementById('new-tour-name').value.trim(); if(n && !db.tours.includes(n)) { db.tours.push(n); saveDB(); init(); } }
@@ -303,8 +253,7 @@
         const am_s = document.getElementById('am-s').value, am_e = document.getElementById('am-e').value, pm_s = document.getElementById('pm-s').value, pm_e = document.getElementById('pm-e').value;
         const calc = (s, e) => (new Date(`1970-01-01T${e}`) - new Date(`1970-01-01T${s}`)) / 3600000;
         const total = Math.max(0, calc(am_s, am_e)) + Math.max(0, calc(pm_s, pm_e));
-        const d = new Date(document.getElementById('in-date').value);
-        const data = { id: editId || Date.now(), tour: document.getElementById('sel-tour').value, date: document.getElementById('in-date').value, kw: getKW(d), am_s, am_e, pm_s, pm_e, total };
+        const data = { id: editId || Date.now(), tour: document.getElementById('sel-tour').value, date: document.getElementById('in-date').value, kw: getKW(new Date(document.getElementById('in-date').value)), am_s, am_e, pm_s, pm_e, total };
         if(editId) db.entries[db.entries.findIndex(e=>e.id===editId)] = data; else db.entries.push(data);
         db.entries.sort((a,b) => new Date(a.date) - new Date(b.date)); saveDB(); resetForm(); showTab('tab-report');
     }
