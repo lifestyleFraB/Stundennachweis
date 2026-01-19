@@ -109,7 +109,7 @@
     <div id="tab-report" class="container">
         <div id="report-list"></div>
         <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
-            <h4>Abrechnung (Aktueller Lohn)</h4>
+            <h4>Vorschau Abrechnung</h4>
             <div id="report-final-table"></div>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
@@ -121,7 +121,7 @@
     <div id="pdf-export-container"></div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('frank_v27_final')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
+    let db = JSON.parse(localStorage.getItem('frank_v28_final')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.50 };
     let timerInterval;
     let editId = null;
 
@@ -133,7 +133,7 @@
         document.getElementById('in-date').valueAsDate = new Date();
     }
 
-    function saveDB() { localStorage.setItem('frank_v27_final', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('frank_v28_final', JSON.stringify(db)); }
 
     function saveWage() {
         db.wage = parseFloat(document.getElementById('cfg-wage').value.replace(',','.')) || 14.00;
