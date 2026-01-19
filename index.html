@@ -42,17 +42,14 @@
         #pdf-export-container { position: absolute; left: -9999px; }
         .pdf-area { width: 210mm; padding: 20mm; background: white; color: black; font-family: Arial, sans-serif; }
 
-        /* Print Header & Footer Initial Hidden */
         .print-header, .print-footer { display: none; }
 
         @media print {
             body * { visibility: hidden; background: white !important; color: black !important; }
             #tab-report, #tab-report * { visibility: visible; }
             .print-header, .print-footer { display: block !important; }
-            
             #tab-report button, #tab-report input, .nav, .app-header, 
             #report-dynamic-title, td:last-child, th:last-child { display: none !important; }
-
             #tab-report { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
             .week-block { border: 1px solid #ddd; margin-bottom: 20px; page-break-inside: avoid; }
             .summary-table { width: 100% !important; border-collapse: collapse; }
@@ -60,14 +57,12 @@
             .total-row { background-color: #f0f0f0 !important; }
         }
     </style>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
 </head>
 
 <body>
 
     <h2 id="main-title" style="text-align: center; color: var(--accent); margin-top: 10px;">
-        Stundennachweis Busbetrieb Elkmann - <span id="current-month-year"></span>
+        Stundennachweis Elkmann - <span id="current-month-year"></span>
     </h2>
 
     <div class="app-header">
@@ -77,7 +72,7 @@
     <div class="nav">
         <button id="nav-dash" class="nav-btn active" onclick="showTab('tab-dash')">Dashboard</button>
         <button id="nav-entry" class="nav-btn" onclick="showTab('tab-entry')">Erfassung</button>
-        <button id="nav-report" class="nav-btn" onclick="showTab('tab-report')">Bericht & Export</button>
+        <button id="nav-report" class="nav-btn" onclick="showTab('tab-report')">Bericht</button>
     </div>
 
     <div id="tab-dash" class="container active">
@@ -90,15 +85,22 @@
             </div>
             <select id="timer-tour-sel" style="margin-top:15px; margin-bottom:0;"></select>
         </div>
-        <h3>Tour-Übersicht</h3>
+
         <div id="dash-summary-content"></div>
-        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-top: 20px;">
-            <h4>Touren verwalten</h4>
+
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-top: 10px;">
+            <h4>Einstellungen & Touren</h4>
+            <label style="font-size:0.8rem; color:var(--text-dim)">Stundenlohn (€)</label>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="number" id="cfg-wage" step="0.01" style="margin-bottom:0;">
+                <button onclick="saveWage()" style="background:var(--accent); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold;">Sichern</button>
+            </div>
+
             <div style="display:flex; gap:10px;">
-                <input type="text" id="new-tour-name" placeholder="Name der Tour..." style="margin-bottom:0;">
+                <input type="text" id="new-tour-name" placeholder="Neue Tour..." style="margin-bottom:0;">
                 <button onclick="addTour()" style="background:var(--success); border:none; padding:10px 20px; border-radius:8px; color:white; font-weight:bold;">+</button>
             </div>
-            <div id="tour-list" style="margin-top:10px; font-size:0.9rem;"></div>
+            <div id="tour-list" style="margin-top:10px; font-size:0.85rem;"></div>
         </div>
     </div>
 
@@ -111,7 +113,7 @@
             <div><label>Nachmittag</label><div style="display:flex;gap:5px;"><input type="time" id="pm-s" value="00:00"><input type="time" id="pm-e" value="00:00"></div></div>
         </div>
         <button class="btn-primary" onclick="saveEntry()">Speichern</button>
-        <button id="btn-cancel" onclick="resetForm()" style="display:none; width:100%; margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:10px;">Abbrechen / Zurücksetzen</button>
+        <button id="btn-cancel" onclick="resetForm()" style="display:none; width:100%; margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:10px;">Abbrechen</button>
     </div>
 
     <div id="tab-report" class="container">
@@ -121,13 +123,12 @@
                 <h2 id="print-month-year" style="margin: 5px 0; font-size: 14pt;"></h2>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt;">
-                <div><strong>Fahrer:</strong> Frank Berndt<br>Sellen 22 | 48565 Steinfurt<br> Mobil: 01725374047</div>
+                <div><strong>Fahrer:</strong> Frank Berndt<br>Sellen 22 | 48565 Steinfurt</div>
                 <div style="text-align: right;"><strong>Erstellt am:</strong> <span id="print-current-date"></span></div>
             </div>
         </div>
 
         <div id="report-list"></div>
-        
         <div id="report-final-summary-box" style="margin-top:30px; border-top:2px solid var(--accent); padding-top:15px;">
             <h4 id="report-dynamic-title">Gesamt-Abrechnung</h4>
             <div id="report-final-table"></div>
@@ -140,16 +141,15 @@
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
             <button onclick="generatePDF()" style="background:var(--danger); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">PDF Beleg</button>
-            <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">Excel Export</button>
+            <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;">Excel</button>
         </div>
-        <button onclick="window.print()" style="background:#444; color:white; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; margin-top:10px;">System-Druck (Alternative)</button>
     </div>
 
-    <div style="margin-top: 20px; padding: 15px; border-top: 1px dashed var(--accent); width: 100%; max-width: 850px; box-sizing: border-box;">
-        <h4>Daten-Sicherung</h4>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <button onclick="backupData()" style="background:#5865f2; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Sichern (Download)</button>
-            <button onclick="document.getElementById('import-file').click()" style="background:#4e5058; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Wiederherstellen</button>
+    <div style="margin-top: 20px; padding: 15px; border-top: 1px dashed var(--accent); width: 100%; max-width: 850px; box-sizing: border-box; font-size: 0.8rem; opacity: 0.7;">
+        <h4>Datensicherung</h4>
+        <div style="display:flex; gap:10px;">
+            <button onclick="backupData()" style="padding:8px; border-radius:5px; border:1px solid #555; background:none; color:white;">Backup</button>
+            <button onclick="document.getElementById('import-file').click()" style="padding:8px; border-radius:5px; border:1px solid #555; background:none; color:white;">Restore</button>
         </div>
         <input type="file" id="import-file" style="display:none" onchange="restoreData(event)" accept=".json">
     </div>
@@ -157,20 +157,31 @@
     <div id="pdf-export-container"><div id="pdf-area" class="pdf-area"></div></div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('frank_v24')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null };
+    let db = JSON.parse(localStorage.getItem('frank_v25')) || { entries: [], tours: ["Standard-Tour"], activeTimer: null, wage: 14.00 };
     let timerInterval;
     let editId = null;
 
     function init() {
         const mj = getMonatJahr();
         document.getElementById('current-month-year').innerText = mj;
+        document.getElementById('cfg-wage').value = db.wage;
         updateTourDropdowns();
         renderDashboard();
         updateTimerUI();
         document.getElementById('in-date').valueAsDate = new Date();
     }
 
-    function saveDB() { localStorage.setItem('frank_v24', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('frank_v25', JSON.stringify(db)); }
+
+    function saveWage() {
+        const val = parseFloat(document.getElementById('cfg-wage').value.replace(',', '.'));
+        if(!isNaN(val)) {
+            db.wage = val;
+            saveDB();
+            renderDashboard();
+            alert("Lohn angepasst: " + val.toFixed(2) + " €");
+        }
+    }
 
     function startTimer() {
         db.activeTimer = { start: Date.now(), tour: document.getElementById('timer-tour-sel').value };
@@ -215,11 +226,35 @@
         }
     }
 
+    function renderDashboard() {
+        const content = document.getElementById('dash-summary-content');
+        const now = new Date();
+        const thisMonthEntries = db.entries.filter(e => {
+            const d = new Date(e.date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+        const totalH = thisMonthEntries.reduce((s, e) => s + e.total, 0);
+        
+        content.innerHTML = `
+            <div style="background:var(--accent); padding:15px; border-radius:12px; text-align:center; margin-bottom:15px;">
+                <div style="font-size:0.8rem; opacity:0.8;">Stunden diesen Monat</div>
+                <div style="font-size:2rem; font-weight:bold;">${totalH.toFixed(2)} h</div>
+                <div style="font-size:1.2rem;">= ${(totalH * db.wage).toFixed(2)} €</div>
+            </div>
+        `;
+
+        document.getElementById('tour-list').innerHTML = db.tours.map(t => `
+            <div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #333;">
+                ${t} <span onclick="deleteTour('${t}')" style="color:var(--danger); cursor:pointer;">✕</span>
+            </div>
+        `).join('');
+    }
+
     function renderReport() {
         const mj = getMonatJahr();
         document.getElementById('print-month-year').innerText = mj;
         document.getElementById('print-current-date').innerText = new Date().toLocaleDateString('de-DE');
-        document.getElementById('report-dynamic-title').innerText = `Stundennachweis ${mj} für Busbetrieb Elkmann`;
+        document.getElementById('report-dynamic-title').innerText = `Abrechnung ${mj} (${db.wage.toFixed(2)}€/h)`;
 
         const weeks = {};
         db.entries.forEach(e => {
@@ -230,181 +265,118 @@
 
         let html = '';
         for(let k in weeks) {
-            const w = weeks[k], count = w.days.size, avg = w.h / count;
+            const w = weeks[k], count = w.days.size;
             html += `<div class="week-block"><div class="week-title">${k.split('-KW')[1].split('-')[0]}. KW | Tour: ${k.split('-').slice(2).join('-')}</div>
                 <table class="report-table"><thead><tr><th>Datum</th><th>Vorm.</th><th>Nachm.</th><th>Std.</th><th></th></tr></thead>
-                <tbody>${w.items.map(i => `<tr><td>${i.date}</td><td>${i.am_s}-${i.am_e}</td><td>${i.pm_s}-${i.pm_e}</td><td><b>${i.total.toFixed(2)}</b></td>
-                <td style="text-align:right"><span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:10px;cursor:pointer;">✎</span><span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span></td></tr>`).join('')}</tbody>
+                <tbody>${w.items.map(i => `<tr><td>${new Date(i.date).toLocaleDateString('de-DE')}</td><td>${i.am_s}-${i.am_e}</td><td>${i.pm_s}-${i.pm_e}</td><td><b>${i.total.toFixed(2)}</b></td>
+                <td style="text-align:right">
+                    <span onclick="copyEntry(${i.id})" style="color:var(--accent);margin-right:12px;cursor:pointer;font-size:1.1rem;">⧉</span>
+                    <span onclick="editEntry(${i.id})" style="color:var(--edit);margin-right:12px;cursor:pointer;">✎</span>
+                    <span onclick="deleteEntry(${i.id})" style="color:var(--danger);cursor:pointer;">🗑</span>
+                </td></tr>`).join('')}</tbody>
                 </table>
-                <div class="math-detail">Abrechnung: ${w.h.toFixed(2)}h / ${count} Tage = ${avg.toFixed(2)}h Ø | <strong>${(w.h * 14).toFixed(2)} €</strong></div></div>`;
+                <div class="math-detail">Summe: ${w.h.toFixed(2)}h | <strong>${(w.h * db.wage).toFixed(2)} €</strong></div></div>`;
         }
         document.getElementById('report-list').innerHTML = html || "Keine Einträge.";
         document.getElementById('report-final-table').innerHTML = getSummaryHTML();
     }
 
-function getSummaryHTML() {
-    const stats = {}; let totalH = 0;
-    db.entries.forEach(e => {
-        if(!stats[e.tour]) stats[e.tour] = { h: 0 };
-        stats[e.tour].h += e.total; totalH += e.total;
-    });
+    function getSummaryHTML() {
+        const stats = {}; let totalH = 0;
+        db.entries.forEach(e => {
+            if(!stats[e.tour]) stats[e.tour] = { h: 0 };
+            stats[e.tour].h += e.total; totalH += e.total;
+        });
 
-    let html = `
-    <table class="summary-table" style="width: 100%; border-collapse: collapse; font-family: monospace;">
-        <thead>
-            <tr style="border-bottom: 2px solid #ddd;">
-                <th style="text-align: left; padding: 8px;">Tour-Bezeichnung</th>
-                <th style="text-align: right; padding: 8px; width: 80px;">Stunden</th>
-                <th style="text-align: right; padding: 8px; width: 100px;">Verdienst</th>
-            </tr>
-        </thead>
-        <tbody>`;
-    
-    for(let t in stats) { 
-        html += `
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">${t}</td>
-                <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${stats[t].h.toFixed(2)} h</td>
-                <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${(stats[t].h * 14).toFixed(2)} €</td>
-            </tr>`; 
+        let html = `<table class="summary-table"><thead><tr><th>Tour</th><th style="text-align:right">Std.</th><th style="text-align:right">Betrag</th></tr></thead><tbody>`;
+        for(let t in stats) { 
+            html += `<tr><td>${t}</td><td style="text-align:right">${stats[t].h.toFixed(2)} h</td><td style="text-align:right">${(stats[t].h * db.wage).toFixed(2)} €</td></tr>`; 
+        }
+        html += `<tr class="total-row"><td>GESAMT</td><td style="text-align:right">${totalH.toFixed(2)} h</td><td style="text-align:right">${(totalH * db.wage).toFixed(2)} €</td></tr></tbody></table>`;
+        return html;
     }
-    
-    html += `
-            <tr class="total-row" style="background-color: #e6e6e6; font-weight: bold;">
-                <td style="padding: 8px;">GESAMT-SUMME</td>
-                <td style="text-align: right; padding: 8px;">${totalH.toFixed(2)} h</td>
-                <td style="text-align: right; padding: 8px;">${(totalH * 14).toFixed(2)} €</td>
-            </tr>
-        </tbody>
-    </table>`;
-    return html;
-}
+
+    function copyEntry(id) {
+        const e = db.entries.find(x => x.id === id);
+        if(e) {
+            document.getElementById('sel-tour').value = e.tour;
+            document.getElementById('in-date').valueAsDate = new Date();
+            document.getElementById('am-s').value = e.am_s;
+            document.getElementById('am-e').value = e.am_e;
+            document.getElementById('pm-s').value = e.pm_s;
+            document.getElementById('pm-e').value = e.pm_e;
+            editId = null;
+            showTab('tab-entry');
+            document.getElementById('form-title').innerText = "Kopie speichern";
+        }
+    }
+
+    function saveEntry() {
+        const am_s = document.getElementById('am-s').value, am_e = document.getElementById('am-e').value, 
+              pm_s = document.getElementById('pm-s').value, pm_e = document.getElementById('pm-e').value;
+        const calc = (s, e) => {
+            const diff = (new Date(`1970-01-01T${e}`) - new Date(`1970-01-01T${s}`)) / 3600000;
+            return diff > 0 ? diff : 0;
+        };
+        const total = calc(am_s, am_e) + calc(pm_s, pm_e);
+        const d = new Date(document.getElementById('in-date').value);
+        if(isNaN(d.getTime())) return alert("Datum wählen!");
+
+        const data = { id: editId || Date.now(), tour: document.getElementById('sel-tour').value, date: document.getElementById('in-date').value, kw: getKW(d), year: d.getFullYear(), am_s, am_e, pm_s, pm_e, total: total };
+        if(editId) db.entries[db.entries.findIndex(e=>e.id===editId)] = data; else db.entries.push(data);
+        db.entries.sort((a,b) => new Date(a.date) - new Date(b.date));
+        saveDB(); resetForm(); showTab('tab-report');
+    }
 
     function exportCSV() {
-        if (db.entries.length === 0) return alert("Keine Daten!");
-        let csv = "Datum;Tour;Vormittag;Nachmittag;Stunden\n";
+        let csv = "Datum;Tour;Vormittag;Nachmittag;Stunden;Betrag\n";
         db.entries.forEach(e => {
-            csv += `${e.date};${e.tour};${e.am_s}-${e.am_e};${e.pm_s}-${e.pm_e};${e.total.toFixed(2).replace('.',',')}\n`;
+            csv += `${e.date};${e.tour};${e.am_s}-${e.am_e};${e.pm_s}-${e.pm_e};${e.total.toFixed(2).replace('.',',')};${(e.total * db.wage).toFixed(2).replace('.',',')}\n`;
         });
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `Stundennachweis_${getMonatJahr().replace(' ','_')}.csv`;
+        link.download = `Export_${getMonatJahr()}.csv`;
         link.click();
     }
 
-async function generatePDF() {
-    renderReport();
-    const mj = getMonatJahr();
-    const area = document.getElementById('pdf-area');
-    
-    // Definitionen
-    const grau20 = "#e0e0e0"; // Das gewünschte Lichtgrau
-    const weiss = "#ffffff";
-
-    area.innerHTML = `
-        <div style="padding: 10mm; font-family: Arial, sans-serif; color: #000; background-color: #ffffff; width: 190mm;">
-            
-            <div style="text-align: center; background-color: ${grau20} !important; -webkit-print-color-adjust: exact; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ccc;">
-                <h1 style="margin: 0; font-size: 18pt; color: #000;">Stundennachweis Busbetrieb Elkmann</h1>
-                <h2 style="margin: 5px 0; font-size: 14pt; color: #333;">${mj}</h2>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 10pt;">
-                <div>
-                    <strong>Fahrer:</strong><br>
-                    Frank Berndt<br>
-                    Sellen 22 | 48565 Steinfurt<br>
-                    <strong>Mobil: 0172-5374047</strong>
+    async function generatePDF() {
+        renderReport();
+        const mj = getMonatJahr();
+        const area = document.getElementById('pdf-area');
+        area.innerHTML = `
+            <div style="padding: 10mm; font-family: Arial, sans-serif; color: black; background: white;">
+                <div style="text-align: center; background: #eee; padding: 15px; border: 1px solid #ccc; margin-bottom: 20px;">
+                    <h1 style="margin:0;">Stundennachweis Busbetrieb Elkmann</h1>
+                    <h3>${mj} | Satz: ${db.wage.toFixed(2)} €/h</h3>
                 </div>
-                <div style="text-align: right;">
-                    <strong>Erstellt am:</strong><br>
-                    ${new Date().toLocaleDateString('de-DE')}
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                    <div><strong>Fahrer:</strong> Frank Berndt<br>Sellen 22, 48565 Steinfurt</div>
+                    <div style="text-align:right;"><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}</div>
                 </div>
-            </div>
-
-            <div id="pdf-content-inject"></div>
-
-            <div style="margin-top: 30px; border: 1px solid #ddd; page-break-inside: avoid;">
-                <div style="background-color: ${grau20} !important; -webkit-print-color-adjust: exact; padding: 10px; border-bottom: 1px solid #ddd;">
-                    <h3 style="margin: 0; font-size: 12pt; color: #000;">Gesamt-Zusammenfassung (Netto-Abrechnung)</h3>
+                <div id="pdf-content-inject"></div>
+                <div style="margin-top:20px; border:1px solid #ccc; padding:10px;">
+                    <strong>Netto-Abrechnung:</strong>
+                    <div id="pdf-summary-inject"></div>
                 </div>
-                <div id="pdf-summary-inject" style="padding: 0;"></div>
-            </div>
-
-            <div style="margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid;">
-                <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Unterschrift Frank Berndt</div>
-                <div style="border-top: 1px solid #000; width: 65mm; text-align: center; font-size: 9pt; padding-top: 5px;">Bestätigung Betrieb</div>
-            </div>
-        </div>
-    `;
-
-    const reportContent = document.getElementById('report-list').cloneNode(true);
-    reportContent.querySelectorAll('td:last-child, th:last-child').forEach(el => el.remove());
-
-    // 1. Alle ehemals blauen Texte weiß machen
-    // Wir suchen alle Elemente im Report, die eine Farbe gesetzt haben
-    reportContent.querySelectorAll('*').forEach(el => {
-        const style = window.getComputedStyle(el);
-        // Prüfen ob die Farbe blau-ähnlich ist oder ob es ein Header ist
-        if (style.color.includes('114') || el.classList.contains('week-title') || el.tagName === 'TH') {
-            el.style.setProperty('color', weiss, 'important');
-        }
-    });
-
-    // 2. Tour-Balken (Header) auf Grau setzen
-    const tourBalken = reportContent.querySelectorAll('.week-title, .tour-header');
-    tourBalken.forEach(balken => {
-        balken.style.setProperty('background-color', grau20, 'important');
-        balken.style.setProperty('color', '#000', 'important'); // Tour-Titel lieber schwarz auf grau für Lesbarkeit
-        balken.style.border = "1px solid #ccc";
-    });
-
-    area.querySelector('#pdf-content-inject').appendChild(reportContent);
-    area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
-
-    // 3. Tabellen-Feinschliff & Blaue Schrift in Tabellen-Köpfen korrigieren
-    area.querySelectorAll('table').forEach(table => {
-        table.style.width = "100%";
-        table.style.borderCollapse = "collapse";
+                <div style="margin-top:40px; display:flex; justify-content:space-between;">
+                    <div style="border-top:1px solid #000; width:60mm; text-align:center; padding-top:5px;">Unterschrift Berndt</div>
+                    <div style="border-top:1px solid #000; width:60mm; text-align:center; padding-top:5px;">Bestätigung Elkmann</div>
+                </div>
+            </div>`;
         
-        table.querySelectorAll('th').forEach(th => {
-            th.style.backgroundColor = grau20;
-            th.style.color = "#000"; // Kopfzeilen schwarz auf grau
-            th.style.border = "1px solid #ccc";
-        });
-        table.querySelectorAll('td').forEach(td => {
-            td.style.border = "1px solid #ddd";
-            // Falls in den Zellen noch blau vorkommt -> Schwarz oder Weiß
-            if (td.style.color.includes('114')) td.style.color = "#000";
-        });
-    });
+        const reportClone = document.getElementById('report-list').cloneNode(true);
+        reportClone.querySelectorAll('td:last-child, th:last-child').forEach(e => e.remove());
+        area.querySelector('#pdf-content-inject').appendChild(reportClone);
+        area.querySelector('#pdf-summary-inject').innerHTML = getSummaryHTML();
 
-    // PDF-Generierung
-    const canvas = await html2canvas(area, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-    const imgWidth = 210;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const pageHeight = 297;
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        const canvas = await html2canvas(area, { scale: 2 });
+        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, (canvas.height * 210) / canvas.width);
+        pdf.save(`Abrechnung_${mj.replace(' ','_')}.pdf`);
+        area.innerHTML = "";
     }
 
-    pdf.save(`Stundennachweis_Elkmann_${mj.replace(' ','_')}.pdf`);
-    area.innerHTML = "";
-}
-
-    // Hilfsfunktionen
     function showTab(id) {
         document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -425,27 +397,16 @@ async function generatePDF() {
     function addTour() { const n = document.getElementById('new-tour-name').value.trim(); if(n && !db.tours.includes(n)) { db.tours.push(n); saveDB(); init(); } }
     function deleteTour(n) { if(confirm("Löschen?")) { db.tours=db.tours.filter(t=>t!==n); saveDB(); init(); } }
     function getKW(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(),0,1))) / 86400000) + 1)/7); }
-    function saveEntry() {
-        const am_s = document.getElementById('am-s').value, am_e = document.getElementById('am-e').value, pm_s = document.getElementById('pm-s').value, pm_e = document.getElementById('pm-e').value;
-        const total = ((new Date(`1970-01-01T${am_e}`) - new Date(`1970-01-01T${am_s}`)) + (new Date(`1970-01-01T${pm_e}`) - new Date(`1970-01-01T${pm_s}`))) / 3600000;
-        const d = new Date(document.getElementById('in-date').value);
-        const data = { id: editId || Date.now(), tour: document.getElementById('sel-tour').value, date: document.getElementById('in-date').value, kw: getKW(d), year: d.getFullYear(), am_s, am_e, pm_s, pm_e, total: Math.abs(total) };
-        if(editId) db.entries[db.entries.findIndex(e=>e.id===editId)] = data; else db.entries.push(data);
-        db.entries.sort((a,b) => new Date(a.date) - new Date(b.date));
-        saveDB(); resetForm(); showTab('tab-report');
-    }
-    function editEntry(id) { const e = db.entries.find(x=>x.id===id); editId=id; document.getElementById('sel-tour').value=e.tour; document.getElementById('in-date').value=e.date; document.getElementById('am-s').value=e.am_s; document.getElementById('am-e').value=e.am_e; document.getElementById('pm-s').value=e.pm_s; document.getElementById('pm-e').value=e.pm_e; showTab('tab-entry'); document.getElementById('btn-cancel').style.display="block"; }
+    function editEntry(id) { const e = db.entries.find(x=>x.id===id); editId=id; document.getElementById('sel-tour').value=e.tour; document.getElementById('in-date').value=e.date; document.getElementById('am-s').value=e.am_s; document.getElementById('am-e').value=e.am_e; document.getElementById('pm-s').value=e.pm_s; document.getElementById('pm-e').value=e.pm_e; showTab('tab-entry'); document.getElementById('btn-cancel').style.display="block"; document.getElementById('form-title').innerText = "Bearbeiten"; }
     function deleteEntry(id) { if(confirm("Löschen?")) { db.entries=db.entries.filter(x=>x.id!==id); saveDB(); renderReport(); } }
-    function resetForm() { editId = null; document.getElementById('am-s').value = "00:00"; document.getElementById('am-e').value = "00:00"; document.getElementById('pm-s').value = "00:00"; document.getElementById('pm-e').value = "00:00"; document.getElementById('btn-cancel').style.display = "none"; }
+    function resetForm() { editId = null; document.getElementById('form-title').innerText = "Tourzeit erfassen"; document.getElementById('am-s').value = "00:00"; document.getElementById('am-e').value = "00:00"; document.getElementById('pm-s').value = "00:00"; document.getElementById('pm-e').value = "00:00"; document.getElementById('btn-cancel').style.display = "none"; }
     function backupData() {
         const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `WorkTrack_Backup_${new Date().toISOString().slice(0,10)}.json`; link.click();
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `Backup_${new Date().toISOString().slice(0,10)}.json`; link.click();
     }
     function restoreData(event) {
         const reader = new FileReader();
-        reader.onload = function(e) {
-            try { db = JSON.parse(e.target.result); saveDB(); init(); alert("Erfolgreich!"); } catch(e) { alert("Fehler!"); }
-        };
+        reader.onload = function(e) { try { db = JSON.parse(e.target.result); saveDB(); init(); alert("Erfolgreich!"); } catch(e) { alert("Fehler!"); } };
         reader.readAsText(event.target.files[0]);
     }
 
