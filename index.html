@@ -180,14 +180,14 @@
         document.getElementById('report-list').innerHTML = html || "Keine Einträge.";
     }
 
-    async function generatePDF() {
+   async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
     const monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
     let y = 20;
 
     const checkPage = (needed) => { 
-        if (y + needed > 275) { 
+        if (y + needed > 270) { 
             pdf.addPage(); 
             y = 20; 
             return true; 
@@ -195,7 +195,7 @@
         return false; 
     };
 
-    // Header fixieren
+    // --- Header ---
     pdf.setFillColor(230, 230, 230); pdf.rect(15, y, 180, 12, 'F');
     pdf.setFontSize(16); pdf.setFont("helvetica", "bold");
     pdf.text("Stundennachweis Busbetrieb Elkmann", 105, y + 8, { align: "center" });
@@ -203,35 +203,59 @@
     
     pdf.setFontSize(10); pdf.setFont("helvetica", "normal");
     pdf.text(`Fahrer: Frank Berndt | Sellen 22 | 48565 Steinfurt`, 15, y);
-    y += 10;
+    y += 12;
 
-    // Daten nach Monat gruppieren
+    // --- Daten aufbereiten ---
     const grouped = {};
+    const tourTotals = {}; // Für die Gesamtsumme am Ende
+    let grandTotalH = 0;
+
     db.entries.forEach(e => {
         const d = new Date(e.date);
         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         if (!grouped[monthKey]) grouped[monthKey] = [];
         grouped[monthKey].push(e);
+
+        // Tour-Summen tracken
+        if (!tourTotals[e.tour]) tourTotals[e.tour] = 0;
+        tourTotals[e.tour] += e.total;
+        grandTotalH += e.total;
     });
 
-    // Monate sortiert abarbeiten
     const sortedMonths = Object.keys(grouped).sort().reverse();
 
+    // --- Tabellen-Header Funktion ---
+    const drawTableHead = (currentY) => {
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(100);
+        pdf.text("Datum", 18, currentY);
+        pdf.text("Tour / Bezeichnung", 45, currentY);
+        pdf.text("Vormittags", 100, currentY);
+        pdf.text("Nachmittags", 130, currentY);
+        pdf.text("Std.", 185, currentY, { align: "right" });
+        pdf.setTextColor(0);
+        return currentY + 4;
+    };
+
+    // --- Hauptschleife Monate ---
     sortedMonths.forEach(monthKey => {
         const [year, month] = monthKey.split('-');
         const monthName = monate[parseInt(month) - 1];
         
-        checkPage(30);
-        // Monats-Header
-        pdf.setFillColor(114, 137, 218); // Dein Accent-Blau
+        checkPage(40);
+        // Blauer Monatsbalken
+        pdf.setFillColor(114, 137, 218);
         pdf.setTextColor(255, 255, 255);
         pdf.rect(15, y, 180, 8, 'F');
         pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
         pdf.text(`${monthName} ${year}`, 18, y + 5.5);
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(0);
         y += 12;
 
-        // Einträge dieses Monats
+        y = drawTableHead(y);
+
         let monthTotalH = 0;
         grouped[monthKey].forEach(i => {
             checkPage(10);
@@ -244,33 +268,61 @@
             pdf.text(i.tour, 45, y);
             pdf.setFont("helvetica", "normal");
             
-            pdf.text(`${i.am_s}-${i.am_e}`, 100, y);
-            pdf.text(`${i.pm_s}-${i.pm_e}`, 130, y);
-            pdf.text(`${i.total.toFixed(2)} h`, 175, y);
+            pdf.text(i.am_s + " - " + i.am_e, 100, y);
+            pdf.text(i.pm_s + " - " + i.pm_e, 130, y);
+            pdf.text(i.total.toFixed(2), 185, y, { align: "right" });
             
-            pdf.setDrawColor(200);
+            pdf.setDrawColor(220);
             pdf.line(15, y + 2, 195, y + 2);
             
             monthTotalH += i.total;
             y += 8;
         });
 
-        // Monats-Summe
+        // Monatssumme
         pdf.setFont("helvetica", "bold");
-        pdf.text(`Summe ${monthName}: ${monthTotalH.toFixed(2)} h | ${(monthTotalH * db.wage).toFixed(2)} €`, 193, y + 2, {align: "right"});
+        pdf.text(`Summe ${monthName}: ${monthTotalH.toFixed(2)} h`, 185, y + 2, { align: "right" });
         y += 15;
     });
 
-    // Unterschriften-Feld am Ende des Dokuments
-    if (y > 250) { pdf.addPage(); y = 20; } else { y = 265; }
+    // --- Gesamtsumme pro Tour (Zusammenfassung) ---
+    checkPage(50);
+    y += 5;
+    pdf.setFillColor(245, 245, 245);
+    pdf.rect(15, y, 180, 7, 'F');
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("ZUSAMMENFASSUNG NACH TOUREN", 18, y + 5);
+    y += 12;
+
+    pdf.setFontSize(10);
+    for (const [tourName, totalH] of Object.entries(tourTotals)) {
+        checkPage(10);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(tourName, 18, y);
+        pdf.text(`${totalH.toFixed(2)} h`, 110, y);
+        pdf.text(`${(totalH * db.wage).toFixed(2)} €`, 185, y, { align: "right" });
+        y += 7;
+    }
+
+    pdf.setLineWidth(0.5);
+    pdf.line(15, y, 195, y);
+    y += 8;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("GESAMTSUMME ALLE TOUREN", 18, y);
+    pdf.text(`${grandTotalH.toFixed(2)} h`, 110, y);
+    pdf.text(`${(grandTotalH * db.wage).toFixed(2)} €`, 185, y, { align: "right" });
+
+    // --- Unterschriften ---
+    y = 270;
     pdf.setFontSize(8);
+    pdf.setFont("helvetica", "normal");
     pdf.line(15, y, 80, y); pdf.line(120, y, 185, y);
     pdf.text("Unterschrift Frank Berndt", 15, y + 5); 
-    pdf.text("Bestätigung Betrieb", 120, y + 5);
+    pdf.text("Bestätigung Betrieb (Busbetrieb Elkmann)", 120, y + 5);
 
     pdf.save(`Abrechnung_Frank_Berndt.pdf`);
 }
-
     function showTab(id) { document.querySelectorAll('.container').forEach(c => c.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); document.getElementById('nav-' + id.split('-')[1]).classList.add('active'); if(id === 'tab-report') renderReport(); if(id === 'tab-dash') renderDashboard(); }
     function updateTourDropdowns() { const options = db.tours.map(t=>`<option value="${t}">${t}</option>`).join(''); document.getElementById('sel-tour').innerHTML = options; document.getElementById('timer-tour-sel').innerHTML = options; }
     function addTour() { const n = document.getElementById('new-tour-name').value.trim(); if(n && !db.tours.includes(n)) { db.tours.push(n); saveDB(); init(); } }
