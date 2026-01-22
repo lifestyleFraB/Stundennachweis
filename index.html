@@ -181,84 +181,95 @@
     }
 
     async function generatePDF() {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-        const mj = monate[new Date().getMonth()] + " " + new Date().getFullYear();
-        let y = 20;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+    let y = 20;
 
-        const checkPage = (needed) => { if (y + needed > 270) { pdf.addPage(); y = 20; return true; } return false; };
+    const checkPage = (needed) => { 
+        if (y + needed > 275) { 
+            pdf.addPage(); 
+            y = 20; 
+            return true; 
+        } 
+        return false; 
+    };
 
-        // Header
-        pdf.setFillColor(224, 224, 224); pdf.rect(15, y, 180, 15, 'F');
-        pdf.setFontSize(16); pdf.setFont("helvetica", "bold"); pdf.text("Stundennachweis Busbetrieb Elkmann", 105, y + 10, { align: "center" });
-        y += 25;
-        pdf.setFontSize(10); pdf.setFont("helvetica", "normal");
-        pdf.text(`Fahrer: Frank Berndt, Sellen 22, 48565 Steinfurt`, 15, y);
-        pdf.text(`Monat: ${mj}`, 160, y);
-        y += 15;
+    // Header fixieren
+    pdf.setFillColor(230, 230, 230); pdf.rect(15, y, 180, 12, 'F');
+    pdf.setFontSize(16); pdf.setFont("helvetica", "bold");
+    pdf.text("Stundennachweis Busbetrieb Elkmann", 105, y + 8, { align: "center" });
+    y += 18;
+    
+    pdf.setFontSize(10); pdf.setFont("helvetica", "normal");
+    pdf.text(`Fahrer: Frank Berndt | Sellen 22 | 48565 Steinfurt`, 15, y);
+    y += 10;
 
-        const weeks = {};
-        db.entries.forEach(e => { const key = `KW ${e.kw} | ${e.tour}`; if(!weeks[key]) weeks[key] = { items: [], h: 0 }; weeks[key].items.push(e); weeks[key].h += e.total; });
+    // Daten nach Monat gruppieren
+    const grouped = {};
+    db.entries.forEach(e => {
+        const d = new Date(e.date);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!grouped[monthKey]) grouped[monthKey] = [];
+        grouped[monthKey].push(e);
+    });
 
-        for (let k in weeks) {
-            checkPage(40);
-            // Grauer Balken Wochenkopf
-            pdf.setFillColor(240, 240, 240); 
-            pdf.rect(15, y, 180, 8, 'F');
-            pdf.setFont("helvetica", "bold"); 
-            pdf.text(k, 18, y + 5);
-            
-            y += 14; 
+    // Monate sortiert abarbeiten
+    const sortedMonths = Object.keys(grouped).sort().reverse();
 
-            pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-            weeks[k].items.forEach(i => {
-                checkPage(10);
-                pdf.text(`${new Date(i.date).toLocaleDateString('de-DE')}`, 18, y);
-                pdf.text(`Vorm: ${i.am_s}-${i.am_e}`, 50, y);
-                pdf.text(`Nachm: ${i.pm_s}-${i.pm_e}`, 95, y);
-                pdf.text(`${i.total.toFixed(2)} h`, 175, y);
-                y += 8;
-            });
-            
-            // NEU: HELLBLAUE WOCHENSUMMENZEILE
-            checkPage(15);
-            pdf.setFillColor(230, 240, 255); // Sehr helles Blau
-            pdf.rect(130, y - 5, 65, 8, 'F');
-            pdf.setDrawColor(0, 50, 150); // Dunkelblaue Linie
-            pdf.setLineWidth(0.3);
-            pdf.line(130, y - 5, 195, y - 5);
-            
-            pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(0, 50, 100);
-            pdf.text(`Woche: ${weeks[k].h.toFixed(2)} h | ${(weeks[k].h * db.wage).toFixed(2)} €`, 193, y, {align: "right"});
-            
-            pdf.setTextColor(0, 0, 0);
-            y += 18;
-        }
+    sortedMonths.forEach(monthKey => {
+        const [year, month] = monthKey.split('-');
+        const monthName = monate[parseInt(month) - 1];
+        
+        checkPage(30);
+        // Monats-Header
+        pdf.setFillColor(114, 137, 218); // Dein Accent-Blau
+        pdf.setTextColor(255, 255, 255);
+        pdf.rect(15, y, 180, 8, 'F');
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${monthName} ${year}`, 18, y + 5.5);
+        pdf.setTextColor(0, 0, 0);
+        y += 12;
 
-        // Gesamtaufstellung
-        checkPage(60); y += 5;
-        pdf.setFontSize(12); pdf.setFont("helvetica", "bold"); pdf.text("GESAMT-AUFSTELLUNG", 15, y); y += 10;
-        const stats = {}; let totalH = 0;
-        db.entries.forEach(e => { if(!stats[e.tour]) stats[e.tour] = { h: 0 }; stats[e.tour].h += e.total; totalH += e.total; });
-        pdf.setFontSize(10); pdf.line(15, y, 195, y); y += 8;
-        for(let t in stats) {
+        // Einträge dieses Monats
+        let monthTotalH = 0;
+        grouped[monthKey].forEach(i => {
             checkPage(10);
             pdf.setFont("helvetica", "normal");
-            pdf.text(t, 18, y); pdf.text(`${stats[t].h.toFixed(2)} h`, 110, y); pdf.text(`${(stats[t].h * db.wage).toFixed(2)} €`, 160, y);
+            pdf.setFontSize(9);
+            
+            const dateStr = new Date(i.date).toLocaleDateString('de-DE');
+            pdf.text(dateStr, 18, y);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(i.tour, 45, y);
+            pdf.setFont("helvetica", "normal");
+            
+            pdf.text(`${i.am_s}-${i.am_e}`, 100, y);
+            pdf.text(`${i.pm_s}-${i.pm_e}`, 130, y);
+            pdf.text(`${i.total.toFixed(2)} h`, 175, y);
+            
+            pdf.setDrawColor(200);
+            pdf.line(15, y + 2, 195, y + 2);
+            
+            monthTotalH += i.total;
             y += 8;
-        }
-        y += 4; pdf.setFont("helvetica", "bold"); pdf.line(15, y, 195, y); y += 8;
-        pdf.text("GESAMTSUMME:", 18, y); pdf.text(`${totalH.toFixed(2)} h`, 110, y); pdf.text(`${(totalH * db.wage).toFixed(2)} €`, 160, y);
+        });
 
-        // Unterschriften
-        y = 275; pdf.setFontSize(8); pdf.setFont("helvetica", "normal");
-        pdf.line(15, y, 80, y); pdf.line(120, y, 185, y);
-        pdf.text("Unterschrift Frank Berndt", 15, y + 5); pdf.text("Bestätigung Betrieb", 120, y + 5);
+        // Monats-Summe
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`Summe ${monthName}: ${monthTotalH.toFixed(2)} h | ${(monthTotalH * db.wage).toFixed(2)} €`, 193, y + 2, {align: "right"});
+        y += 15;
+    });
 
-        pdf.save(`Abrechnung_Elkmann_${mj.replace(' ','_')}.pdf`);
-    }
+    // Unterschriften-Feld am Ende des Dokuments
+    if (y > 250) { pdf.addPage(); y = 20; } else { y = 265; }
+    pdf.setFontSize(8);
+    pdf.line(15, y, 80, y); pdf.line(120, y, 185, y);
+    pdf.text("Unterschrift Frank Berndt", 15, y + 5); 
+    pdf.text("Bestätigung Betrieb", 120, y + 5);
+
+    pdf.save(`Abrechnung_Frank_Berndt.pdf`);
+}
 
     function showTab(id) { document.querySelectorAll('.container').forEach(c => c.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); document.getElementById('nav-' + id.split('-')[1]).classList.add('active'); if(id === 'tab-report') renderReport(); if(id === 'tab-dash') renderDashboard(); }
     function updateTourDropdowns() { const options = db.tours.map(t=>`<option value="${t}">${t}</option>`).join(''); document.getElementById('sel-tour').innerHTML = options; document.getElementById('timer-tour-sel').innerHTML = options; }
